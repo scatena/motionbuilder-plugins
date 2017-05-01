@@ -5,7 +5,7 @@ Useful for inertial motion capture data when root translation data is not availa
 
 ## Instructions
 
-Follow GUI.
+Add "Contact Point" constraint. Follow GUI instructions.
 
 ## Installation
 
