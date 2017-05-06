@@ -30,12 +30,11 @@
 //--- SDK include
 #include <fbsdk/fbsdk.h>
 
+
+// Tool Definitions
 #define	ORCONSTRAINT__CLASSNAME		constraintcontactpoint
 #define ORCONSTRAINT__CLASSSTR		"constraintcontactpoint"
 
-
-//checar o que posso apagar
-#define ORSKELETON__CLASSSTR	"FBModelSkeleton"
 #define COPY_NAMESPACE			"Copy"
 #define COPY_NAMESPACE_DOT		FBString("Copy:")
 
@@ -45,7 +44,8 @@
 
 #define MAXLINK	100
 
-//! A simple constraint class.
+
+//! Simple constraint class.
 class constraintcontactpoint : public FBConstraint
 {
 	//--- declaration
@@ -57,7 +57,6 @@ public:
 	virtual void			FBDestroy() override;						//!< Destructor.
 
 	//--- Animation node management
-	virtual void			RemoveAllAnimationNodes() override;			//!< Remove animation nodes.
 	virtual void			SetupAllAnimationNodes() override;			//!< Setup animation nodes.
 
 	//--- Real-Time evaluation engine function.
@@ -67,215 +66,164 @@ public:
 	virtual bool			FbxStore	( FBFbxObject* pFbxObject, kFbxObjectStore pStoreWhat ) override;	//!< FBX Storage.
 	virtual bool			FbxRetrieve	( FBFbxObject* pFbxObject, kFbxObjectStore pStoreWhat ) override;	//!< FBX Retrieval.
 
-	// Root List Set-up
+	// Root Node Management
+	void					SetRootNode( FBModel* pRootModel );			// Set the root node (from UI Root List)
+
 	void					SetRootString( FBString pLongName, FBString pShortName );
 	FBString				GetRootString();
 
-	void					SetRootNode( FBModel* pRootModel );
+	// Target Nodes Management
+	int						AddComponentNode( FBComponent* pComponent );// Add a target node (from UI Models List)
 	
-
-	void					SelectMarker( int pIndex );
-	void					FocusMarker( int pIndex );
-
-
-	void					DefocusAll(); // remove the focus on weight properties
-	void					Focus( FBModel* pMarker ); //focus weight property on model
-	
-
-	//trazendo as funções do layout
-	bool					SetUpAuxRig ();
-
-	void					DeselectAll();
-	
-
-
 	int						GetNodeCount();
 	const char*				GetNodeName( int pIndex );
-	
+
+	// Target Markers Management
+	FBModel*				GetMarkerAt( int pIndex );					// Return marker at index
+
 	void					ShowMarker( int pIndex );
-	FBModel*				GetMarkerAt( int pIndex );
+	void					SelectMarker( int pIndex );
+	void					FocusMarker( int pIndex );					// Focus marker's weight property
 
-
-	int						AddComponentNode( FBComponent* pComponent );
-
-	bool					GetSetUp();
-
-	// usando property pra ser permanente
-	void					SetAutoKey( bool pBool );
+	// Constraint Configuration Interface
+	void					SetAutoKey( bool pBool );					// Auto Key
 	bool					GetAutoKey();
 
-	void					SetAutoSelect( bool pBool );
+	void					SetAutoSelect( bool pBool );				// Auto Select
 	bool					GetAutoSelect();
 
-	// controles
-	void					SetSceneSelect( bool pBool );
+	void					SetSceneSelect( bool pBool );				// Scene Select
 	bool					GetSceneSelect();
 
-	void					SetPersistentSelect( bool pBool );
+	void					SetPersistentSelect( bool pBool );			// Persistent Selection
 	bool					GetPersistentSelect();
 
-	// seleção permanente
-	void					SetListSelIndex( int pIndex );
-	int						GetListSelIndex();
-
-	// radio display
-	void					SetDisplayMarkerType( int pType );
+	void					SetDisplayMarkerType( int pType );			// Markers' Display
 	int						GetDisplayMarkerType();
 
-	void					SetMarkersVisibility( bool pBool );
-
-	// seleção de all keyframes
-	void					SetFindAllKeyframes( bool pBool );
+	void					SetFindAllKeyframes( bool pBool );			// Keyframe Navigation Option
 	bool					GetFindAllKeyframes();
 
-	// find 
+	void					SetListSelIndex( int pIndex );				// Persistent Selection Information
+	int						GetListSelIndex();
+
+	bool					GetSetUp();									// Setup Status
+
+	// Layout (UI) Helper Functions
+	void					DefocusAll();								// Reset weight properties focus
+
+	void					DeselectAll();	
+
 	int						FindWeight();
-	int						FindNextKey();
+	int						FindNextKey();								// Keyframe Navigation 
 	int						FindPrevKey();
 
+	void					SetMarkersVisibility( bool pBool );			// Show or Hide All Markers
 
-	// overwrite de array
+	// Specific Helper Funcions
+	bool					SetUpAuxRig ();								// Setup auxiliary rig (reference copy)
 
-	void					DeleteNodeAt( int pIndex );	
+	void					DeleteNodeAt( int pIndex );					// Delete marker and node reference at index
 
-
-	void					ResetTool();
+	void					ResetTool();								// Reset Constraint
 
 private:
+	// System instances
+	FBApplication			mApplication;
+	FBSystem				mSystem;
 
-	// funções pro marker marker
-	FBModel*				CreateMarker(char* pName );
-	
-	FBModel*				FindRootSrc();
-	FBModel*				FindRootDst();
+	// Constraint Configuration
+	bool					isAutoKey;
+	bool					isAutoSelect;
+	bool					isSceneSelect;
+	bool					isPersistentSelect;
+	int						mDisplayMarkerType;
+	bool					isFindAllKeyframes;
+	int						mListSelIndex;
+	bool					isSetUp;
 
-	void				AutoKey();
-	void				AutoKeyOthers( FBTime pTime, FBInterpolation pInterp, FBTangentMode pTangen, double pWeight );
+	// Models Management
+	FBModel*				mRootNode;									// Root of source hierarchy
 
+	FBString				mRootString;								// Root name
 
+	FBString				mRootNameSpace;								// Root namespace
 
-	void					SnapModel( FBModel* pSrc, FBModel* pDst );
-	FBModel*				NewLinkedMarker( FBModel* pParentModel );
+	FBModel*				mCopyNode;									// Root of copied hierarchy
 
+	FBModel*				mRootTopNode;								// Top node of source hierarchy
 
-	void					SetupAnimationNode();
-	void					ReSetupAnimationNode();
+	FBModel*				mCopyTopNode;								// Top node of copied hierarchy
 
-	bool					RegisterNode( FBModel* pLocalModel, FBModel* pTargetModel );
+	FBModelNull*			mMarkerParent;								// Group to serve as parent for new markers
 
+	FBModelList				mSourceList;								// Source Nodes List
+	FBModelList				mMarkerList;								// Markers List
+	FBModelList				mUINodeList;								// UI Nodes List
 
-	void					SelectSkeletonHierarchy( FBModel* topNode );
-	void					SelectParentChain( FBModel* pModel );
+	// Animation Nodes Management
+	FBAnimationNode*		mSourceHip;									// Source root node
 
-	void					DeleteHierarchy( FBModel* topNode );
+	FBAnimationNode*		mDestinHip;									// Destination root node
 
-	bool					FileTempSaveSelect();
+	FBAnimationNode*		mSourceMarkers[ MAXLINK ];					// Source markers nodes array
+	FBAnimationNode*		mSourceNodes[ MAXLINK ];					// Source models nodes array
+	FBAnimationNode*		mMarkerWeights[ MAXLINK ];					// Marker weights nodes array
 
-	bool					FileMergeBack();
-	
-	void					ColorSkeletonBranch( FBModelSkeleton* topNode );
+	// General Management
+	bool					isFileRead;									// Auxiliary for tool reconstruction on file read
 
-	
-	FBModel*				GetTopParent( FBModel* pModel );
-	FBNamespace*			GetParentNamespace( FBNamespace* pName );
+	FBString				mTempSaveString;							// Temporary location for saving
 
+	int						mMarkCount;									// Counter for created markers
 
-	//botar private?
-	//instances do sistema
-	FBApplication	mApplication;
-	FBSystem		mSystem;
+	bool					isMarkerConstrained;						// Auxiliary for tool activation
 
+	// Application Save/Merge Functions
+	bool					FileTempSaveSelect();						// Save selection to a temporary file
 
-	//usados no layout - UI
-	FBModel*			mRootTopNode;			// the top node of source hierarchy
+	bool					FileMergeBack();							// Merge temporary file back into the scene
 
-	// guardando a cópia
-	FBModel*			mCopyTopNode;			// the top node of copy rig
+	// Auxiliary Management Functions 
+	FBModel*				GetTopParent( FBModel* pModel );			// Get the top parent of a model
 
-	//
-	FBModelNull*		mMarkerParent;			// just to group them all
+	FBNamespace*			GetParentNamespace( FBNamespace* pName );	// Get the top namespace of a model
 
-	// controle interno
-	bool				isFileRead;
+	FBModel*				FindRootSrc();								// Get the constraint source root model
 
-	// usar propriedade aqu também?
-	bool				isSetUp;
-	void				SetSetUp( bool pActivate );
+	FBModel*				FindRootDst();								// Get the constraint destination root model
 
-	int					RemoveArrayItemAt( FBAnimationNode** pArray, int pIndex, int pLength );
+	void					SetSetUp( bool pActivate );					// Register set up status
 
-	// usando property pra ser permanente
-	bool				isAutoKey;
+	// Markers Management Functions
+	bool					RegisterNode( FBModel* pLocalModel, FBModel* pTargetModel );	// Functions for creating...
+	FBModel*				NewLinkedMarker( FBModel* pParentModel );						// ...and configuring..
+	FBModel*				CreateMarker(char* pName );										// ...new markers.
 
-	bool				isAutoSelect;
+	void					SnapModel( FBModel* pSrc, FBModel* pDst );	// Snaps one model to the position of the other
 
-	// controles
-	bool				isSceneSelect;
+	void					AutoKey();									// Create and set up keys for created markers
+	void					AutoKeyOthers( FBTime pTime, FBInterpolation pInterp, FBTangentMode pTangen, double pWeight );
 
+	void					Focus( FBModel* pMarker );					// Focus markers's weight property
 
-	bool				isPersistentSelect;
+	// Animation Nodes Management
+	void					SetupAnimationNode();						// Set up nodes for real-time evaluation (progressive)
+	void					ReSetupAnimationNode();						// Set up nodes for real-time evaluation (one-shot)
 
+	int						RemoveArrayItemAt( FBAnimationNode** pArray, int pIndex, int pLength ); // Delete item from nodes array
 
-	// seleção permanente
-	int					mListSelIndex;
+	// Hierachy Management Functions
+	void					SelectSkeletonHierarchy( FBModel* topNode );// Recursive function for hierarchy selection
+	void					SelectParentChain( FBModel* pModel );		// Recursive function for parents selection
 
+	void					ColorSkeletonBranch( FBModelSkeleton* topNode );// Recursive function for colorizing skeleton hierarchy
 
-	// radio display
-	int					mDisplayMarkerType;
-
-	// seleção de all keyframes
-	bool				isFindAllKeyframes;
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// temp location string
-	FBString		mTempSaveString;
-
-	//global pra contador
-	int					mMarkCount;				// count models
-
-	
-	FBModelList			mMarkerList;			// modelos de marcadores
-	FBModelList			mSourceList;			// modelos fonte - source
-	FBModelList			mUINodeList;			// lista pros modelos colocados na lista do ui
-
-
-	bool				isMarkerConstrained;
-
-	// nodes de anim
-	FBAnimationNode*	mSourceMarkers[ MAXLINK ];
-	FBAnimationNode*	mSourceNodes[ MAXLINK ];
-	FBAnimationNode*	mMarkerWeights[ MAXLINK ];
-
-	
-
-	FBAnimationNode*	mSourceHip;
-	FBAnimationNode*	mDestinHip;
-
-
-
-	//lista de modelo - testando agora aqui
-	FBModel*			mRootNode;
-	FBModel*			mCopyNode;
-
-	FBString			mRootString;				//!< string pro root
-
-	FBString			mRootNameSpace;			//!< string pro root namespace
+	void					DeleteHierarchy( FBModel* topNode );		// Recursive function for deleting model and its children
 
 	/* -- Development helper function
 	void				DebugIntMessage( int pNumber );
 	*/
-
 };
 
 #endif	/* __constraintcontactpoint_CONSTRAINT_H__ */

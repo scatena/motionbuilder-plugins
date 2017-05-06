@@ -61,12 +61,12 @@ private:
 	void	EventRootListDragAndDrop	( HISender pSender, HKEvent pEvent );
 	void	EventRootListDeselect	( HISender pSender, HKEvent pEvent );
 	
-	// Setup Button
-	void	EventButtonSetupClick( HISender pSender, HKEvent pEvent );
-
 	// Reference models list
 	void	EventModelListDragAndDrop( HISender pSender, HKEvent pEvent );
 	void	EventModelListClick( HISender pSender, HKEvent pEvent );
+
+	// Setup Button
+	void	EventButtonSetupClick( HISender pSender, HKEvent pEvent );
 
 	// Navigation & Delete Buttons
 	void	EventButtonPrevNodeClick( HISender pSender, HKEvent pEvent );

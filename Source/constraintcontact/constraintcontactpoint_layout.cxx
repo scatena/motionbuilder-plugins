@@ -29,15 +29,16 @@
 //--- Class declaration
 #include "constraintcontactpoint_layout.h"
 
+
 //--- Registration define
 #define ORCONSTRAINT__LAYOUT	constraintcontactpoint_Layout
+
 
 //--- implementation and registration
 FBConstraintLayoutImplementation(	ORCONSTRAINT__LAYOUT		);		// Layout class name
 FBRegisterConstraintLayout		(	ORCONSTRAINT__LAYOUT,				// Layout class name
 									ORCONSTRAINT__CLASSSTR,				// Constraint class name (for association)
 									FB_DEFAULT_SDK_ICON			);		// Icon filename (default=Open Reality icon)
-
 
 
 /************************************************
@@ -153,6 +154,7 @@ void constraintcontactpoint_Layout::UICreate()
 
 	UICreatePopupConfig();
 }
+
 
 /************************************************
  *	Create & Assign the UI regions (for Popup).
@@ -289,7 +291,6 @@ void constraintcontactpoint_Layout::UICreatePopupConfig()
 	
 	UICreatePopupAbout();
 }
-
 
 
 /************************************************
@@ -471,8 +472,7 @@ void constraintcontactpoint_Layout::UIConfigurePopupConfig()
 	mButtonPersistentSelectCheck.PropertyList.Find( "Hint" )->SetString( "Keep selected marker in focus even\nwhen constraint is not in view" );
 	mButtonPersistentSelectCheck.OnClick.Add( this, (FBCallback)&constraintcontactpoint_Layout::EventButtonPersistentSelectCheckClick );
 	
-	
-	// Radio
+	// Radio buttons for Marker Display
 	mPopupDisplayLabel.Caption = "Markers Display:";
 
 	mButtonRadioDispAll.Caption = "All";
@@ -493,10 +493,10 @@ void constraintcontactpoint_Layout::UIConfigurePopupConfig()
 	mButtonRadioDispNil.PropertyList.Find( "Hint" )->SetString( "Do not display any marker" );
 	mButtonRadioDispNil.OnClick.Add( this, (FBCallback) &constraintcontactpoint_Layout::EventButtonRadioDispNilClick );
 
-	//Set ui display marker type
+	// Set UI from constraint data
 	SetMarkerDisplayType( mConstraint->GetDisplayMarkerType() );
 
-	// radio for find key type
+	// Radio Buttons for Navigation Options (Find Keyframe)
 	mPopupKeyframeLabel.Caption = "Next/Prev Keyframe:";
 
 	mButtonRadioFindAll.Caption = "All";
@@ -511,10 +511,10 @@ void constraintcontactpoint_Layout::UIConfigurePopupConfig()
 	mButtonRadioFindNon.PropertyList.Find( "Hint" )->SetString( "Ignore zero-weight keyframes when searching" );
 	mButtonRadioFindNon.OnClick.Add( this, (FBCallback) &constraintcontactpoint_Layout::EventButtonRadioFindNonClick );
 
-	// set it
+	// Set UI from constraint data
 	SetFindKeyframeType( mConstraint->GetFindAllKeyframes() );
 
-	// reset
+	// 'Reset Tool' Button
 	mPopupResetLabel.Caption = "Reset?";
 	
 	mButtonReset.Caption = "Reset Tool";
@@ -526,20 +526,23 @@ void constraintcontactpoint_Layout::UIConfigurePopupConfig()
 }
 
 
-
 /************************************************
  *	Configure & add callbacks to the UI Elements (for Popup).
  ************************************************/
 void constraintcontactpoint_Layout::UIConfigurePopupAbout()
 {
+	// Popup Title
 	mPopupAbout.Caption = "About";
 
+	// 'Close' Button
 	mButtonCloseAbout.Caption = "X";
 	mButtonCloseAbout.PropertyList.Find( "Hint" )->SetString( "Close window" );
 	mButtonCloseAbout.OnClick.Add	( this, (FBCallback) &constraintcontactpoint_Layout::EventButtonCloseAboutPopupClick   );
 
+	// Title Label
 	mPopupInfo1Label.Caption = "Contact Point Editing Tool\nVersion 1.03 (Beta)";
 
+	// Instructions Labels
     mPopupInfo2Label.Caption = "Instructions:";
     mPopupInfo2Label.Style = kFBTextStyleItalic;
 
@@ -551,9 +554,11 @@ void constraintcontactpoint_Layout::UIConfigurePopupAbout()
 								"Plot to root when satisfied.\n"
 								"Demonstration video:";
 
+	// Link text for video demonstration
     mPopupInfoLinkText.Text = VIMEO_DEMO_LINK;
     mPopupInfoLinkText.OnChange.Add( this, (FBCallback) &constraintcontactpoint_Layout::EventChangeAboutLink ); //maintain link as is
     
+	// Information Labels
     mPopupInfo4Label.Caption = "Author:";
     mPopupInfo4Label.Style = kFBTextStyleItalic;
  
@@ -562,76 +567,76 @@ void constraintcontactpoint_Layout::UIConfigurePopupAbout()
 
 
 /************************************************
- *	Reset the UI from the constraint values.
+ *	Reset the UI calling for constraint data
  ************************************************/
 void constraintcontactpoint_Layout::UIReset()
 {
-	/* debug 
-	FBMessageBox("Tool test", "ui reset call", "OK", NULL, NULL, 1 );
-	/**/
-
-	// check for setup or not
+	// Get set-up status from constraint
 	locIsSetup = mConstraint->GetSetUp();
 
-	// start disabled
-	// ui setup button - disabled until set
+	// Set UI to begin disabled until tool is set
 	UISetupEnable( false );
-	// disable root list after setuo
+	// Disable root list if has been already set
 	UIRootDisable ( locIsSetup );
-	// root name input list - only populate it if is empty
+	// Populate root input list - only if it is empty
 	if ( mListRoot.Items.GetCount() == 0 )
 	{
+		// If there is no root model set, add instructions
 		if ( mConstraint->GetRootString().GetLen() == 0 )
 			mListRoot.Items.Add( "---Insert Root Bone---",	NULL );
+		// Else add the models name
 		else
 		{
 			mListRoot.Items.Add( mConstraint->GetRootString(),	NULL );
-			// if there is model and has not been setup, enable setup button
+			// In case it has not been setup, enable Setup button
 			if ( !locIsSetup )
 				UISetupEnable( true );
 		}
 	}
-	// just enable model list in case there is model configured
+	// Enable model list in case tool is set up
 	UIListEnable( locIsSetup );
 
-	// marker property + del button - start disabled
+	// Marker-related UI (Navigation tools, property view and Delete button) will first be disabled...
 	SetupMarkerProperty( -1 );
+	// ...but in case it has been set up:
 	if ( locIsSetup )
 	{
-		// get added list nodes
+		// Get added nodes count
 		int lCount = mConstraint->GetNodeCount();
 		
-		// reset model list
+		// Reset the nodes list (UI)
 		mListModel.Items.Clear();
-		// if there are no nodes, add instructions only
+		// If there are no nodes, add instructions
 		if( lCount == 0 )
 			mListModel.Items.Add( "--- Add Pivots ---" );
-		// else, procced
+		// Else...
 		else
 		{
-			// iterate over list items
+			// ...iterate over list items...
 			for( int i=0; i<lCount; i++ )
 			{
-				// add item to list - no longer using extra kReference
+				// ...and add it list.
 				mListModel.Items.Add( mConstraint->GetNodeName( i ) );
 			}
 
-			// se estiver em permanente
+			// Status check - If set to 'Persistent selection'
 			if ( mButtonPersistentSelectCheck.State == 1 )
 			{
+				// Get which item is selected from tool...
 				mSelectedNodeIndex = mConstraint->GetListSelIndex();
 
-				// if there is selected (permanent) item
+				// ...and if there is any...
 				if ( mSelectedNodeIndex >= 0 )
 				{
-					// re-select item list
+					// ...re-select it on the list...
 					mListModel.Selected( mSelectedNodeIndex, true );
 
-					// marker property setup - using broad function - already has SetupMarkerProperty in it
+					// ...and set its property to be viewed (using helper function that makes use of SetupMarkerProperty()
 					SetSelectedMarker( mSelectedNodeIndex );
 
-					// markers display - if display selected
+					// Status check - If set to 'Display Selected'...
 					if ( mButtonRadioDispSel.State == 1 )
+						// ...show it.
 						mConstraint->ShowMarker( mSelectedNodeIndex );
 				}
 			}
@@ -639,40 +644,12 @@ void constraintcontactpoint_Layout::UIReset()
 	}
 }
 
-void constraintcontactpoint_Layout::UISetupEnable( bool pEnable )
-{
-	// only enable button when a valid node is set
-	mButtonSetup.Enabled       = pEnable;
-}
-
-void constraintcontactpoint_Layout::UIRootDisable( bool pDisable )
-{
-	// do not enable root list if it is already configured
-	mListRoot.Enabled		= !pDisable;
-}
-
-void constraintcontactpoint_Layout::UIListEnable( bool pIsSetup )
-{
-	// just enable model list in case there is model configured
-	mListModel.Enabled				= pIsSetup;
-	mButtonPrevNode.Enabled			= pIsSetup;
-	mButtonFindNode.Enabled			= pIsSetup;
-	mButtonNextNode.Enabled			= pIsSetup;
-	// not here
-	// mButtonDelNode.Enabled			= pIsSetup;
-	//mMarkerProperty.Enabled			= pIsSetup;
-}
-
-
-
 
 /************************************************
- *	Root List callback.
+ *	Root List Drag and Drop callback.
  ************************************************/
-
 void constraintcontactpoint_Layout::EventRootListDragAndDrop( HISender pSender, HKEvent pEvent )
 {
-
 	FBEventDragAndDrop lDragAndDrop( pEvent );
     
 	switch( lDragAndDrop.State )
@@ -684,24 +661,26 @@ void constraintcontactpoint_Layout::EventRootListDragAndDrop( HISender pSender, 
         break;
         case kFBDragAndDropDrop:
         {
+			// Grab dropped component
 			FBComponent* lComponent = lDragAndDrop.Get(0);
 			if( lComponent )
 			{
-				// clear first
+				// Clear list
 				mListRoot.Items.Clear();
-				// if is skeleton
+				// If component is skeleton...
 				if( lComponent->Is( FBModelSkeleton::TypeInfo ) )
 				{
-					//add item
+					// Add item to list
 					mListRoot.Items.Add( lComponent->LongName, 0 );
+					// Enable Set-up button;
 					UISetupEnable( true );
-					//check to see if is root bone - warn if not
+					// Check if node is root bone - warn if not
 					if ( !IsRootBone( (FBModel*)lComponent ) )
 						FBMessageBox("Warning", "Bone is not the root.\nThis might cause issues.", "OK", NULL, NULL, 1 );
-					// send the node
+					// Send the node to constraint
 					mConstraint->SetRootNode( (FBModel*)lComponent );
 				}
-				// if not, add instructions
+				// IF component is not skeleton, add new instructions
 				else
 					mListRoot.Items.Add( "---Must be Skeleton Node---",	NULL );
 			}
@@ -710,13 +689,20 @@ void constraintcontactpoint_Layout::EventRootListDragAndDrop( HISender pSender, 
     }
 }
 
+
+/************************************************
+ *	Root List Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventRootListDeselect( HISender pSender, HKEvent pEvent )
 {
-	//always keep list de-selected (UX purposes only)
+	// Always keep list deselected (UX purposes only)
 	mListRoot.Selected(0, false);
 }
 
 
+/************************************************
+ *	Model List Drag and Drop callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventModelListDragAndDrop( HISender pSender, HKEvent pEvent )
 {
 	FBEventDragAndDrop lDragAndDrop( pEvent );
@@ -730,37 +716,42 @@ void constraintcontactpoint_Layout::EventModelListDragAndDrop( HISender pSender,
         break;
         case kFBDragAndDropDrop:
 		{
+			// Initialize a counter for nodes to be accepted
 			int lAddedNodes = 0;
 			FBComponent* lComponent = NULL;
+			// Get how many components were dropped
 			int lCount = lDragAndDrop.GetCount();
 			int lFirstIndex = 0;
-			// if is auto key and more and one is selected
+			// Status check - If set to 'Auto Key' and user tries to add multiple components...
 			if ( mButtonAutoKeyCheck.State && lCount > 1 )
 			{
-				// get user option
-				int lUserOption = FBMessageBox("Warning", "Multiple items selected while autokey is on.\nThis can cause unexpected behaviour.", "Proceed", "Disable A-Key", "Use last selec.");
-				
-
-				// disable autokey
-				if ( lUserOption == 2 )
+				// Ask for user option
+				switch( FBMessageBox("Warning", "Multiple items selected while autokey is on.\nThis can cause unexpected behaviour.", "Proceed", "Disable A-Key", "Use last selec.") )
 				{
-					mConstraint->SetAutoKey( false );
-					mButtonAutoKeyCheck.State = 0;
-				}
-				// get last selected
-				else if ( lUserOption == 3 )
-				{
-					lFirstIndex = lCount-1;
+					// Case 'Disable Autokey'
+					case 2:
+					{
+						mConstraint->SetAutoKey( false );
+						mButtonAutoKeyCheck.State = 0;
+					}
+					break;
+					// Case 'Last Selected'
+					case 3:
+					{
+						lFirstIndex = lCount-1;
+					}
+					break;
 				}
 			}
-			// iterate over dragged items
-			for(int i = lFirstIndex;i<lCount;i++)
+			// Iterate over dragged items
+			for( int i = lFirstIndex; i<lCount; i++ )
 			{
+				// Grab respective component
 				lComponent = lDragAndDrop.Get(i);
-				// try to add component - via constraint
+				// Try to add component - via constraint
 				lAddedNodes += mConstraint->AddComponentNode( lComponent );
 			}
-			// Update if needed
+			// Update if needed (at least one node successfully added)
 			if ( lAddedNodes > 0 )
 				UIReset();
 		}
@@ -768,144 +759,201 @@ void constraintcontactpoint_Layout::EventModelListDragAndDrop( HISender pSender,
     }
 }
 
+
+/************************************************
+ *	Model List Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventModelListClick( HISender pSender, HKEvent pEvent )
 {
-	// se a lista só tem instrução - mantém a instrução deselecionada
+	// If list has only instructions, keep deselect (UX purposes only)
 	if ( mConstraint->GetNodeCount() == 0 )
 		mListModel.Selected(0, false);
-	// se houver nodes
+	// Otherwise, if has nodes
 	else
 	{
-		// reseta
+		// Reset UI List Selection
 		SetSelectedMarker(-1);
-		// if display selected - hide all
+		// Status check - If set to 'Display Selected', hide all
 		if ( mButtonRadioDispSel.State == 1 )
 		{
 			mConstraint->SetMarkersVisibility( false );
 		}
 		
-		// pega-se o índice selecionado
+		// Grab which index was clicked
 		int selIndex = mListModel.ItemIndex;
-		// no primeiro clique, registra qual foi o selecionado - se ele já era selecionado antes, deseleciona
+		// Compare clicked index with which index was thought to be selected (if any)
+		// If indexes are different...
 		if ( selIndex != mSelectedNodeIndex )
 		{
+			// Focus the marker and its properties
 			SetSelectedMarker(selIndex);
-			// marca como selecionado e registra que o foi
+			// Select the item and register its index
 			mListModel.Selected(selIndex, true);
 			mSelectedNodeIndex = selIndex;
-			// control display - selected
+			// Status check - If set to 'Display Selected', show clicked node
 			if ( mButtonRadioDispSel.State == 1 )
 				mConstraint->ShowMarker(selIndex );
 		}
+		// If indexes are the same...
 		else
 		{
-			// marca como deselecionado e tira o registro de seleção
+			// Deselect and unregister its index
 			mListModel.Selected(selIndex, false);
 			mSelectedNodeIndex = -1;
-			// control display
 		}
-		// if persistent
+		// Status check - If set to 'Persistent Selection'
 		if ( mButtonPersistentSelectCheck.State == 1 )
 		{
+			// Register in the constraint which index was now selected (-1 in the case of none)
 			mConstraint->SetListSelIndex( mSelectedNodeIndex );
 		}
 	}
 }
 
-void constraintcontactpoint_Layout::SetSelectedMarker( int pSelIndex )
-{
-	if ( pSelIndex < 0 )
-	{
-		// deselect mode
-		// defocus all
-		mConstraint->DefocusAll();
-		// se estiver setado pra lista selecionar o marker
-		if ( mButtonSceneSelectCheck.State == 1 )
-			mConstraint->DeselectAll();
-	}
-	else
-	{
-		//modo de seleção
-		// seta o foco
-		mConstraint->FocusMarker( pSelIndex );
-		// se estiver setado pra lista selecionar o marker
-		if ( mButtonSceneSelectCheck.State == 1 )
-			mConstraint->SelectMarker( pSelIndex ); // more elegant
-	}
-	// marker property setup
-	SetupMarkerProperty( pSelIndex );
-
-}
 
 /************************************************
- *	Button click callback.
+ *	Setup Button Click callback.
  ************************************************/
 void constraintcontactpoint_Layout::EventButtonSetupClick( HISender pSender, HKEvent pEvent )
 {
-	// Setup auxiliary rig
-
-	// via Constraint function
+	// Setup auxiliary rig - via  Constraint function
 	if ( !mConstraint->SetUpAuxRig() )
-		FBMessageBox("Error", "Something went bad. Node could not be set up.", "OK", NULL, NULL, 1 );
+		FBMessageBox("Error", "Something went wrong. Node could not be set up.", "OK", NULL, NULL, 1 );
 
-	// do not call any layout function ( like UIReset() ), or else program will crash
-	// UI will be properly refreshed when copied hierarchy is brought in via merge
-	
+	// Warning: do not call any layout function ( like UIReset() ), or else program will crash.
+	// UI will be properly refreshed when copied hierarchy is brought in via merge.
 }
 
-// extras
 
-// list callbakcs
+/************************************************
+ *	Find Keyframe 'Previous' Button Click callback.
+ ************************************************/
+void constraintcontactpoint_Layout::EventButtonPrevNodeClick ( HISender pSender, HKEvent pEvent )
+{
+	UISelectMarker( mConstraint->FindPrevKey() );
+}
 
 
+/************************************************
+ *	Find Keyframe 'Next' Button Click callback.
+ ************************************************/
+void constraintcontactpoint_Layout::EventButtonNextNodeClick ( HISender pSender, HKEvent pEvent )
+{
+	UISelectMarker( mConstraint->FindNextKey() );
+}
 
 
+/************************************************
+ *	Find Keyframe 'Current' Button Click callback.
+ ************************************************/
+void constraintcontactpoint_Layout::EventButtonFindNodeClick ( HISender pSender, HKEvent pEvent )
+{
+	UISelectMarker( mConstraint->FindWeight() );
+}
 
 
+/************************************************
+ *	Delete Node Button Click callback.
+ ************************************************/
+void constraintcontactpoint_Layout::EventButtonDelNodeClick ( HISender pSender, HKEvent pEvent )
+{
+	// Confirm with user
+	if ( FBMessageBox("Warning", "Are you sure?\nThis is not undoable.", "OK", "Cancel", NULL, 1 ) == 1 )
+	{
+		// Deselect in list
+		mListModel.Selected( -1, true);
+		// Reset Property View
+		SetupMarkerProperty( -1 );
+		// Delete node from constraint
+		mConstraint->DeleteNodeAt( mSelectedNodeIndex );
+
+		// Update UI
+		UIReset();
+	}
+}
 
 
+/************************************************
+ *	Open Popup 'Config' Button Click callback.
+ ************************************************/
+void constraintcontactpoint_Layout::EventButtonConfigPopupClick( HISender pSender, HKEvent pEvent )
+{
+	mPopupConfig.Modal = true;
+	mPopupConfig.Show();
+}
+
+
+/************************************************
+ *	Close Popup 'Config' Button Click callback.
+ ************************************************/
+void constraintcontactpoint_Layout::EventButtonCloseConfigPopupClick( HISender pSender, HKEvent pEvent )
+{
+	mPopupConfig.Close();
+}
+
+
+/************************************************
+ *	Auto Key Check Button Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventButtonAutoKeyCheckClick ( HISender pSender, HKEvent pEvent )
 {
-	// active reproduces the state of button
-	//mConstraint->Active = ( mButtonAutoKeyCheck.State == 1) ;
-	//make internal activation
-	//mConstraint->SetActivateCnt( mButtonAutoKeyCheck.State );
 	mConstraint->SetAutoKey( mButtonAutoKeyCheck.State==1 );
-	
 }
 
+
+/************************************************
+ *	Auto Select Check Button Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventButtonAutoSelectCheckClick ( HISender pSender, HKEvent pEvent )
 {
 	mConstraint->SetAutoSelect( mButtonAutoSelectCheck.State==1 );
 }
 
 
+/************************************************
+ *	Scene Select Check Button Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventButtonSceneSelectCheckClick ( HISender pSender, HKEvent pEvent )
 {
 	mConstraint->SetSceneSelect( mButtonSceneSelectCheck.State==1 );
 }
 
+
+/************************************************
+ *	Persistent Select Check Button Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventButtonPersistentSelectCheckClick ( HISender pSender, HKEvent pEvent )
 {
 	mConstraint->SetPersistentSelect( mButtonPersistentSelectCheck.State==1 );
-	// se for setado pra sim, guardar qual a seleção
+	// If set to 'Persistent Select', register the selection in the constraint
 	if ( mButtonPersistentSelectCheck.State==1 )
 		mConstraint->SetListSelIndex( mSelectedNodeIndex );
 }
 
-//radio
+
+/************************************************
+ *	Display Marker 'All' Radio Button Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventButtonRadioDispAllClick ( HISender pSender, HKEvent pEvent )
 {
 	SetMarkerDisplayType( DISPLAYALL );
 	mConstraint->SetDisplayMarkerType( DISPLAYALL );
 }
 
+
+/************************************************
+ *	Display Marker 'Selected' Radio Button Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventButtonRadioDispSelClick ( HISender pSender, HKEvent pEvent )
 {
 	SetMarkerDisplayType( DISPLAYSEL );
 	mConstraint->SetDisplayMarkerType( DISPLAYSEL );
 }
 
+
+/************************************************
+ *	Display Marker 'None' Radio Button Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventButtonRadioDispNilClick ( HISender pSender, HKEvent pEvent )
 {
 	SetMarkerDisplayType( DISPLAYNIL );
@@ -913,19 +961,141 @@ void constraintcontactpoint_Layout::EventButtonRadioDispNilClick ( HISender pSen
 }
 
 
-// radio keyframe
+/************************************************
+ *	Find Keyframe 'All' Radio Button Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventButtonRadioFindAllClick ( HISender pSender, HKEvent pEvent )
 {
 	SetFindKeyframeType( true );
 	mConstraint->SetFindAllKeyframes( true );
 }
 
+
+/************************************************
+ *	Find Keyframe 'Non-Zero' Radio Button Click callback.
+ ************************************************/
 void constraintcontactpoint_Layout::EventButtonRadioFindNonClick ( HISender pSender, HKEvent pEvent )
 {
 	SetFindKeyframeType( false );
 	mConstraint->SetFindAllKeyframes( false );
 }
 
+
+/************************************************
+ *	Reset Tool Button Click callback.
+ ************************************************/
+void constraintcontactpoint_Layout::EventButtonResetClick( HISender pSender, HKEvent pEvent )
+{
+	// Confirm with user
+	if ( FBMessageBox("Warning", "Are you sure?\nThis is not undoable.", "OK", "Cancel", NULL, 1 ) == 1 )
+	{
+		// Always clear UI focus and selection before deleting elements!
+			
+		// Set UI nodes list selection to none
+		mListModel.Selected( -1, true);
+		// Set property focus to none
+		SetupMarkerProperty( -1 );
+		// Clear root list
+		mListRoot.Items.Clear();
+		// Clear nodes list
+		mListModel.Items.Clear();
+		// Reset the constraint
+		mConstraint->ResetTool();
+
+		// Update UI
+		UIReset();
+	}
+}
+
+
+/************************************************
+ *	Open Popup 'About' Button Click callback.
+ ************************************************/
+void constraintcontactpoint_Layout::EventButtonAboutPopupClick( HISender pSender, HKEvent pEvent )
+{
+	mPopupAbout.Modal = true;
+	mPopupAbout.Show();
+}
+
+
+/************************************************
+ *	Close Popup 'About' Button Click callback.
+ ************************************************/
+void constraintcontactpoint_Layout::EventButtonCloseAboutPopupClick( HISender pSender, HKEvent pEvent )
+{
+	mPopupAbout.Close();
+}
+
+
+/************************************************
+ *	Demo Video Link On-Edit callback.
+ ************************************************/
+void constraintcontactpoint_Layout::EventChangeAboutLink( HISender pSender, HKEvent pEvent )
+{
+	// Write back video link no matter what the user has done with the text field
+	mPopupInfoLinkText.Text = VIMEO_DEMO_LINK;
+}
+
+
+//   ########################
+//   ########################
+//		 Helper Functions
+//   ########################
+//   ########################
+
+
+// Enable Setup Button
+void constraintcontactpoint_Layout::UISetupEnable( bool pEnable )
+{
+	mButtonSetup.Enabled       = pEnable;
+}
+
+
+// Disable Root Input List
+void constraintcontactpoint_Layout::UIRootDisable( bool pDisable )
+{
+	mListRoot.Enabled		= !pDisable;
+}
+
+
+// Enable Nodes Input List and Navigation Buttons
+void constraintcontactpoint_Layout::UIListEnable( bool pIsSetup )
+{
+	mListModel.Enabled				= pIsSetup;
+	mButtonPrevNode.Enabled			= pIsSetup;
+	mButtonFindNode.Enabled			= pIsSetup;
+	mButtonNextNode.Enabled			= pIsSetup;
+}
+
+
+// Set UI Property View
+void constraintcontactpoint_Layout::SetupMarkerProperty( int pIndex )
+{
+	// If is a valid index
+	if ( pIndex >= 0 )
+	{
+		// Enable property for current marker
+		FBProperty* lProp = mConstraint->GetMarkerAt(pIndex)->PropertyList.Find("Weight");
+		mMarkerProperty.Property = lProp;
+		mMarkerProperty.Enabled	= true;
+		// Activate Delete button
+		mButtonDelNode.Enabled = true;
+	}
+	// Else, disable property view
+	else
+	{
+		// Dirty workaroung -  display symbolic, locked property
+		// Using base layer's weight as property just for display
+		FBProperty* lProp = FBSystem().CurrentTake->GetLayer(0)->PropertyList.Find("Weight");
+		mMarkerProperty.Property = lProp;
+		mMarkerProperty.Enabled = false;
+		// Deactivate Delete button
+		mButtonDelNode.Enabled = false;
+	}
+}
+
+
+// Set Navigation Serach Option - Helper for Exclusive Pick on Radio Button callbacks
 void constraintcontactpoint_Layout::SetFindKeyframeType( bool pBool )
 {
 	mButtonRadioFindAll.State = pBool ? 1 : 0;
@@ -933,194 +1103,7 @@ void constraintcontactpoint_Layout::SetFindKeyframeType( bool pBool )
 }
 
 
-
-void constraintcontactpoint_Layout::EventButtonDelNodeClick ( HISender pSender, HKEvent pEvent )
-{
-	if ( FBMessageBox("Warning", "Are you sure?\nThis is not undoable.", "OK", "Cancel", NULL, 1 ) == 1 )
-	{
-		// deseleciona
-		mListModel.Selected( -1, true);
-		//ui
-		SetupMarkerProperty( -1 );
-	
-		// remove do constraint
-		mConstraint->DeleteNodeAt( mSelectedNodeIndex );
-
-
-		UIReset();
-	}
-}
-
-
-// next prev
-void constraintcontactpoint_Layout::EventButtonPrevNodeClick ( HISender pSender, HKEvent pEvent )
-{
-	UISelectMarker( mConstraint->FindPrevKey() );
-}
-
-
-void constraintcontactpoint_Layout::EventButtonNextNodeClick ( HISender pSender, HKEvent pEvent )
-{
-	UISelectMarker( mConstraint->FindNextKey() );
-}
-
-void constraintcontactpoint_Layout::EventButtonFindNodeClick ( HISender pSender, HKEvent pEvent )
-{
-	UISelectMarker( mConstraint->FindWeight() );
-}
-
-void constraintcontactpoint_Layout::UISelectMarker( int pIndex )
-{
-	// if valid selection
-	if ( pIndex >= 0 )
-	{
-		// select in list and register
-		mListModel.Selected(pIndex, true);
-		mSelectedNodeIndex = pIndex;
-		// focus on it
-		mConstraint->FocusMarker( pIndex );
-		// set property
-		SetupMarkerProperty( pIndex );
-		// if scene select is active, select it in scene
-		if ( mButtonSceneSelectCheck.State == 1 )
-			mConstraint->SelectMarker( pIndex );
-		// if persistent selection is active, send index value
-		if ( mButtonPersistentSelectCheck.State == 1 )
-		{
-			mConstraint->SetListSelIndex( pIndex );
-		}
-	}
-}
-
-/************************************************
- *	Button config popup callback.
- ************************************************/
-void constraintcontactpoint_Layout::EventButtonConfigPopupClick( HISender pSender, HKEvent pEvent )
-{
-	mPopupConfig.Modal = true;
-	mPopupConfig.Show();
-}
-/************************************************
- *	Close config popup button callback.
- ************************************************/
-void constraintcontactpoint_Layout::EventButtonCloseConfigPopupClick( HISender pSender, HKEvent pEvent )
-{
-	mPopupConfig.Close();
-}
-
-/************************************************
- *	Button about popup callback.
- ************************************************/
-void constraintcontactpoint_Layout::EventButtonAboutPopupClick( HISender pSender, HKEvent pEvent )
-{
-	mPopupAbout.Modal = true;
-	mPopupAbout.Show();
-}
-/************************************************
- *	Close about popup button callback.
- ************************************************/
-void constraintcontactpoint_Layout::EventButtonCloseAboutPopupClick( HISender pSender, HKEvent pEvent )
-{
-	mPopupAbout.Close();
-}
-/************************************************
- *	Write back video link no matter what the user input is
- ************************************************/
-void constraintcontactpoint_Layout::EventChangeAboutLink( HISender pSender, HKEvent pEvent )
-{
-	mPopupInfoLinkText.Text = VIMEO_DEMO_LINK;
-}
-
-
-void constraintcontactpoint_Layout::EventButtonResetClick( HISender pSender, HKEvent pEvent )
-{
-	// reset constraint
-	// confirm dialog
-	if ( FBMessageBox("Warning", "Are you sure?\nThis is not undoable.", "OK", "Cancel", NULL, 1 ) == 1 )
-	{
-		// clear UI focus and selection before deleting elements
-			
-		// select none for model list
-		mListModel.Selected( -1, true);
-		// set property null
-		SetupMarkerProperty( -1 );
-		// clear root list
-		mListRoot.Items.Clear();
-		// clear nodes list
-		mListModel.Items.Clear();
-	
-		//mConstraint->ResetUI();
-		mConstraint->ResetTool();
-
-		// update UI
-		UIReset();
-	}
-	
-}
-
-
-
-//ui
-
-
-
-//move to cosntraint
-// helpers
-// Helpers
-
-
-
-bool constraintcontactpoint_Layout::IsRootBone( FBModel* pModel )
-{
-	// temp? 
-	// if there is no model, terminate
-	if ( pModel == NULL )
-		return false;
-
-	// if parent exists...
-	if ( pModel->Parent )
-	{
-		// ... and is skeleton, the model can't be root
-		if ( pModel->Parent->Is( FBModelSkeleton::TypeInfo ) )
-			return false;
-	}
-	return true;
-		
-}
-
-
-
-
-
-void constraintcontactpoint_Layout::SetupMarkerProperty( int pIndex )
-{
-	if ( pIndex >= 0 )
-	{
-		// enable property for current marker
-		FBProperty* lProp = mConstraint->GetMarkerAt(pIndex)->PropertyList.Find("Weight");
-		mMarkerProperty.Property = lProp;
-		mMarkerProperty.Enabled	= true;
-		// activate delete button
-		mButtonDelNode.Enabled = true;
-
-	}
-	else
-	{
-		//disable
-		//dirty workaround - using base layer weight as property just for display
-		FBProperty* lProp = FBSystem().CurrentTake->GetLayer(0)->PropertyList.Find("Weight");
-		mMarkerProperty.Property = lProp;
-		mMarkerProperty.Enabled = false;
-		//deactivate delete button
-		mButtonDelNode.Enabled = false;
-		
-	}
-}
-
-
-/************************************************
- *	Set UI selection type.
- ************************************************/
+// Set Marker Display Option - Helper for Exclusive Pick on Radio Button callbacks
 void constraintcontactpoint_Layout::SetMarkerDisplayType( int pType )
 {
 	bool	lDisplayAll	= false;
@@ -1146,16 +1129,87 @@ void constraintcontactpoint_Layout::SetMarkerDisplayType( int pType )
 
 	mButtonRadioDispNil.State = lDisplayNil ? 1 : 0;
 
-	// refresh visibility
-	// iterate through all
+	// Refresh visibility for all markers
 	mConstraint->SetMarkersVisibility( lDisplayAll );
+	// If set to 'Display Selected"
 	if ( lDisplaySel )
 	{
-		// show only selected - if any
+		// Show selected - if any
 		if ( mSelectedNodeIndex >= 0 )
 			mConstraint->ShowMarker( mSelectedNodeIndex );
 	}
 }
+
+
+// Select an marker in the interface (list and property display)
+void constraintcontactpoint_Layout::UISelectMarker( int pIndex )
+{
+	// Check for valid index
+	if ( pIndex >= 0 )
+	{
+		// Select list index and register the selection
+		mListModel.Selected(pIndex, true);
+		mSelectedNodeIndex = pIndex;
+		// Focus the marker's property
+		mConstraint->FocusMarker( pIndex );
+		// Set Property View
+		SetupMarkerProperty( pIndex );
+		// Status check - If set to 'Scene Select', select it
+		if ( mButtonSceneSelectCheck.State == 1 )
+			mConstraint->SelectMarker( pIndex );
+		// Status check - If set to 'Persistent selection', register index value
+		if ( mButtonPersistentSelectCheck.State == 1 )
+		{
+			mConstraint->SetListSelIndex( pIndex );
+		}
+	}
+}
+
+
+// Check if model is root of skeleton hierarchy
+bool constraintcontactpoint_Layout::IsRootBone( FBModel* pModel )
+{
+	// Safety check
+	if ( pModel == NULL )
+		return false;
+
+	// If model has parent...
+	if ( pModel->Parent )
+	{
+		// ...and it is a skeleton node, the model can't be the root
+		if ( pModel->Parent->Is( FBModelSkeleton::TypeInfo ) )
+			return false;
+	}
+	// Else, it probably is
+	return true;
+}
+
+
+// Set Focus and Property view for chosen marker
+void constraintcontactpoint_Layout::SetSelectedMarker( int pSelIndex )
+{
+	// Reset mode - null index
+	if ( pSelIndex < 0 )
+	{
+		// Defocus all
+		mConstraint->DefocusAll();
+		// Status check - If set to 'Scene Select', deselect
+		if ( mButtonSceneSelectCheck.State == 1 )
+			mConstraint->DeselectAll();
+	}
+	// Selected marker mode
+	else
+	{
+		// Focus its property 
+		mConstraint->FocusMarker( pSelIndex );
+		// Status check - If set to 'Scene Select', select it
+		if ( mButtonSceneSelectCheck.State == 1 )
+			mConstraint->SelectMarker( pSelIndex );
+	}
+	// Set Up Marker Property View
+	SetupMarkerProperty( pSelIndex );
+}
+
 
 /* -- Development helper function
 void constraintcontactpoint_Layout::DebugIntMessage( int pNumber )

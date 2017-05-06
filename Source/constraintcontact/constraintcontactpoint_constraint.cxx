@@ -31,9 +31,11 @@
 // Version
 #define CONSTRAINT_VERSION_01		1003
 
+
 //--- Class declarations
 #include "constraintcontactpoint_constraint.h"
 #include "constraintcontactpoint_layout.h"
+
 
 //--- Registration defines
 #define	ORCONSTRAINT__CLASS		ORCONSTRAINT__CLASSNAME
@@ -41,7 +43,6 @@
 #define	ORCONSTRAINT__LABEL		"Contact Point"
 #define ORCONSTRAINT__DESC		"Contact Point Description"
 #define ORCONSTRAINT__ICON		"devices_ultratrak.png"
-
 
 
 //--- implementation and registration
@@ -96,12 +97,9 @@ bool constraintcontactpoint::FBCreate()
 	mListSelIndex = -1;
 	mDisplayMarkerType = DISPLAYSEL;
 
-	// cria o skeleton pra poupar tempo
-	FBModel* skeModel = new FBModelSkeleton( "Node 1" );
-	skeModel->Show = true;
-
 	return true;
 }
+
 
 /************************************************
  *	Destruction function.
@@ -142,140 +140,83 @@ void constraintcontactpoint::SetupAllAnimationNodes()
 
 
 /************************************************
- *	Removed all of the animation nodes.
- ************************************************/
-void constraintcontactpoint::RemoveAllAnimationNodes()
-{
-	/*
-	*	If nodes have been bound to deformations, remove the binding.
-	*/
-}
-
-
-
-
-/************************************************
  *	Real-Time Engine Evaluation.
  ************************************************/
 bool constraintcontactpoint::AnimationNodeNotify(FBAnimationNode* pConnector,FBEvaluateInfo* pEvaluateInfo,FBConstraintInfo* pConstraintInfo)
 {
-	/*
-	*	Constraint Evaluation
-	*	1. Read data from sources
-	*	2. Calculate necessary operations.
-	*	3. Write output to destinations
-	*	Note: Not the deformation operations !
-	*/
-
-
+	// Only read and evaluate data if internally activated
 	if (isMarkerConstrained)
 	{
-		// new vector, zeroed
+		// Intanced new vector for Target position
 		double lDestPos[3];
-		/*
-		for(int j=0;j<3;j++)
-			lDestPos[j] = 0;
-		*/
-
+		// Auxiliary double - reading weight of markers
 		double total_weight;
 		total_weight = 0;
-		// loop pra peso
-		for(int i=0;i<mMarkCount;i++)
+		// Iterate over markers and sum weight values
+		for( int i=0; i<mMarkCount; i++)
 		{
 			double lWeight[1];
 			mMarkerWeights[i]->ReadData	( lWeight, pEvaluateInfo );
 			total_weight += lWeight[0];
 		}
-		// make it be minimum 100
+		// Make it minimum '100'
 		if ( total_weight < 100 )
 			total_weight = 100.0;
-
-		//outside loop
+		// Read Hips Position
 		double lHipsPos[3];
 		if( mSourceHip )
 		{
 			mSourceHip->ReadData		( lHipsPos, pEvaluateInfo );
-			//manipulate
-				for(int j=0;j<3;j++)
-					lDestPos[j] = lHipsPos[j];
+			// Set Target to follow Source
+			for( int j=0; j<3; j++ )
+			{
+				lDestPos[j] = lHipsPos[j];
+			}
 		}
-		//loop
-		for(int i=0;i<mMarkCount;i++)
+		// Iterate over markers
+		for( int i=0; i<mMarkCount; i++ )
 		{
 			double lMarkPos[3];
 			double lNodePos[3];
 			double lWeight[1];
 
-			// Safety check - ultimately unnecessary
+			// Safety check (ultimately unnecessary)
 			if( mSourceNodes[i] && mSourceMarkers[i] && mMarkerWeights[i] )
 			{
+				// Read data from source nodes, markers and its weight
 				mSourceNodes[i]->ReadData	( lNodePos, pEvaluateInfo );
-				//( (FBAnimationNode*) mSourceNodesList->GetAt(i) )->ReadData	( lNodePos, pEvaluateInfo );
 				mSourceMarkers[i]->ReadData	( lMarkPos, pEvaluateInfo );
-				//( (FBAnimationNode*) mSourceMarkersList->GetAt(i) )->ReadData	( lMarkPos, pEvaluateInfo );
 				mMarkerWeights[i]->ReadData	( lWeight, pEvaluateInfo );
-				//( (FBAnimationNode*) mMarkerWeightsList->GetAt(i) )->ReadData	( lWeight, pEvaluateInfo );
 
-				//manipulate
-				for(int j=0;j<3;j++)
+				// Set Target to be adjusted accordingly
+				for( int j=0; j<3; j++)
 				{
 					lDestPos[j] += lWeight[0]/total_weight * ( lMarkPos[j] - lNodePos[j] );
-					//lDestPos[j] = lMarkPos[j];// - lNodePos[j];
-
-					/*
-					// keep values
-					mPosition[i][j] = lDestPos[j];
-					*/
 				}
-
-				/* hold write
-				//write				
-				mDestinHip->WriteData	( lDestPos, pEvaluateInfo );
-				*/
 			}
 		}
-		// write sum
+		// Write translation data do destination node
 		if ( mDestinHip )
+		{
 			mDestinHip->WriteData	( lDestPos, pEvaluateInfo );
-
-
+		}
 	}
-	/*double lPosition[3];
-
-	if( mSourceTranslation && mConstrainedTranslation )
-	{
-		mSourceTranslation->ReadData		( lPosition, pEvaluateInfo );
-		mConstrainedTranslation->WriteData	( lPosition, pEvaluateInfo );
-	}
-	mPosition = lPosition;
-	*/
-
 	return true;
-	
-
 }
 
 
-
+/************************************************
+ *	FBX Storage.
+ ************************************************/
 #define CONSTRAINT_FBX_VERSION		"Version"
 #define	CONSTRAINT_FBX_PROPERTIES	"Properties"
 #define CONSTRAINT_FBX_MARKERLIST	"MarkerList"
 #define CONSTRAINT_FBX_SOURCELIST	"SourceList"
 #define CONSTRAINT_FBX_UINODELIST	"UINodeList"
 #define CONSTRAINT_FBX_SETTINGS		"Settings"
-/************************************************
- *	FBX Storage.
- ************************************************/
-
 bool constraintcontactpoint::FbxStore( FBFbxObject* pFbxObject, kFbxObjectStore pStoreWhat )
 {
-	/*
-	*	FBX Storage of constraint parameters.
-	*/
-
 	// Storing data for the tool to be persistent
-	// (instead of several properties, as was before)
-
 	if (pStoreWhat & kAttributes)
 	{
 		// Write version
@@ -326,16 +267,10 @@ bool constraintcontactpoint::FbxStore( FBFbxObject* pFbxObject, kFbxObjectStore 
  ************************************************/
 bool constraintcontactpoint::FbxRetrieve( FBFbxObject* pFbxObject, kFbxObjectStore pStoreWhat )
 {
-	/*
-	*	FBX Retrieval of constraint parameters.
-	*/
-
-	// using FBXRetrieve to call for the rebuild
-	
-	if (pStoreWhat & kAttributes) // conditional to avoid multiple readings?
+	// Using FBXRetrieve to allow for constraint reconstruction
+	if (pStoreWhat & kAttributes) // Avoid multiple readings
 	{
 		int	lVersion = 0;
-		//int	mCount = 0;
 
 		lVersion = pFbxObject->FieldReadI( CONSTRAINT_FBX_VERSION );
 		if ( lVersion <= CONSTRAINT_VERSION_01 )
@@ -391,53 +326,53 @@ bool constraintcontactpoint::FbxRetrieve( FBFbxObject* pFbxObject, kFbxObjectSto
 }
 
 
+//   ########################
+//   ########################
+//		 Public Functions
+//   ########################
+//   ########################
 
 
-
-//   #########################
-//   #########################
-//		Helpers
-//   #########################
-//   #########################
-
-//setagem de listas
-//funções de setagem lista root
+// Set the Root node
 void constraintcontactpoint::SetRootNode( FBModel* pRootModel )
 {
 	mRootNode = pRootModel;
 	SetRootString( (FBString)pRootModel->LongName, (FBString)pRootModel->Name );
 }
 
+
+// Set the Root string and its namespace
 void constraintcontactpoint::SetRootString( FBString pLongName, FBString pShortName )
 {	
-	// set root string
+	// Set root string
 	mRootString = pLongName;
 
-	// set namespace
+	// Set namespace - get length of short name and long name
 	int lNameLength = pShortName.GetLen();
 	int lFullNameLength = pLongName.GetLen();
-	//get everything to the left
+	// Get everything to the left of the full name (meaning "full name" minus "short name")
 	mRootNameSpace = pLongName.Left( lFullNameLength - lNameLength );
 }
 
+
+// Get the Root string
 FBString constraintcontactpoint::GetRootString()
 {	
 	return mRootString;
 }
 
 
-
-
+// Add Node to the Nodes list
 int constraintcontactpoint::AddComponentNode( FBComponent* pComponent )
 {
-	// if Null
+	// Safety check
 	if ( !pComponent )
 		return 0;
 	
-	// if is skeleton
+	// If node is skeleton
 	if( pComponent->Is( FBModelSkeleton::TypeInfo ) )
 	{
-		// ver se está configurado - se já tem node pai
+		// Check if already setup
 		if ( isSetUp )
 		{
 			// Get top of hierarchy to see where it comes from
@@ -454,13 +389,12 @@ int constraintcontactpoint::AddComponentNode( FBComponent* pComponent )
 						// Add item to nodes list
 						mUINodeList.Add( (FBModel*) pComponent );
 					
-						// Added
+						// Register the addition
 						return 1;
 					}
 				}
-				// Else, parallel model was not found
+				// Else, parallel model was not found - warn user
 				FBMessageBox("Warning", "Could not find equivalent node in parallel copy.\n(Probably due to naming conflicts)\nTry adding the bone directly from copied hierarchy.", "OK", NULL, NULL, 1 );
-
 			}
 			else if ( lTopNode == mCopyTopNode ) // Dragged model is part of copy hierachy
 			{
@@ -470,7 +404,7 @@ int constraintcontactpoint::AddComponentNode( FBComponent* pComponent )
 					// Add item to nodes list
 					mUINodeList.Add( (FBModel*) pComponent );
 				
-					// Added
+					// Register the addition
 					return 1;
 				}
 			}
@@ -481,101 +415,57 @@ int constraintcontactpoint::AddComponentNode( FBComponent* pComponent )
 }
 
 
-
-
-FBModel* constraintcontactpoint::CreateMarker(char* pName )
+// Get Nodes List count
+int	constraintcontactpoint::GetNodeCount()
 {
-	// New Marker
-	FBModel* lMarker = new FBModelMarker( pName );
-
-	// adjust size
-	double lSize = 300;
-	FBProperty* lPproperty = lMarker->PropertyList.Find("Size");
-	lPproperty->SetData(&lSize);
-	
-	// adjust look
-	int lLook = 2;
-	lPproperty = lMarker->PropertyList.Find("Look");
-	lPproperty->SetData(&lLook);
-	
-	// count 
-	mMarkCount += 1;
-
-	return lMarker;
+	return mUINodeList.GetCount();
 }
 
 
-void constraintcontactpoint::SnapModel( FBModel* pDst, FBModel* pSrc )
+// Get Name of Node from Nodes List at Index
+const char*	constraintcontactpoint::GetNodeName( int pIndex )
 {
-	FBVector3d l3dGlobalTrans;
-	//true for global
-	pSrc->GetVector(l3dGlobalTrans, kModelTranslation, true ); 
-    pDst->Translation = l3dGlobalTrans;
-
+	return mUINodeList[pIndex]->LongName;
 }
 
-FBModel* constraintcontactpoint::NewLinkedMarker( FBModel* pParentModel )
+
+// Get Marker from MarkerList at Index
+FBModel* constraintcontactpoint::GetMarkerAt( int pIndex )
 {
-	if ( mMarkCount == 100 )
+	return mMarkerList.GetAt( pIndex );
+}
+
+
+// Show Marker from MarkerList at Index
+void constraintcontactpoint::ShowMarker( int pIndex )
+{
+	mMarkerList.GetAt( pIndex )->Show = true;
+}
+
+
+// Select Marker from MarkerList at Index
+void constraintcontactpoint::SelectMarker( int pIndex )
+{
+	if ( mMarkerList[pIndex] )
 	{
-		// do not allow more
-		return NULL;
+		DeselectAll();
+		mMarkerList[pIndex]->Selected = true;
 	}
-
-
-	// nome - padding
-	char paddednumc[10];
-	sprintf( paddednumc, "%02d", mMarkCount );
-	
-	FBString pName = FBString("Mark") + FBString(paddednumc) + FBString("_") + pParentModel->Name ;
-	// create the marker
-	FBModel* lMarker = CreateMarker( pName );
-	
-	// if it is the first one, create a parent node
-	if ( mMarkCount == 1 )
-		mMarkerParent = new FBModelNull("MarkersGrp");
-
-	// make the new marker a child of it
-	lMarker->Parent = mMarkerParent;
-
-	// snapa o marker pro modelo
-	SnapModel( lMarker, pParentModel );
-
-	// adiciona propriedade
-	FBPropertyAnimatable* lProp = (FBPropertyAnimatable*)lMarker->PropertyCreate("Weight", kFBPT_int, "Integer", true, true, NULL);
-
-	// set minimum and max and clamp - alt SetMinMax
-	lProp->SetMin(0, true);
-	lProp->SetMax(100, true);
-	// SetAnimated exposes the property to the relations constraint
-	lProp->SetAnimated(true);
-
-	// adiciona na lista
-	mMarkerList.Add(lMarker);
-
-	return lMarker;
-
 }
 
 
-
-FBModel* constraintcontactpoint::FindRootSrc()
+// Focus Marker's Property from MarkerList at Index
+void constraintcontactpoint::FocusMarker( int pIndex )
 {
-	//FBModel* lModel = FBFindModelByLabelName( mRootString );
-	//FBModel* lModel = FBFindModelByLabelName( COPY_NAMESPACE_DOT + mRootString );
-	return mCopyNode;
-}
-
-FBModel* constraintcontactpoint::FindRootDst()
-{
-	//FBModel* lModel = FBFindModelByLabelName( COPY_NAMESPACE_DOT + mRootString );
-	//FBModel* lModel = FBFindModelByLabelName( mRootString );
-	return mRootNode;
+	if ( mMarkerList[pIndex] )
+	{
+		DefocusAll();
+		Focus( mMarkerList[pIndex] );
+	}
 }
 
 
-
-
+// Auto Key Interface
 void constraintcontactpoint::SetAutoKey( bool pBool )
 {
 	isAutoKey = pBool;
@@ -586,6 +476,7 @@ bool constraintcontactpoint::GetAutoKey()
 }
 
 
+// Auto Select Interface
 void constraintcontactpoint::SetAutoSelect( bool pBool )
 {
 	isAutoSelect = pBool;
@@ -595,6 +486,8 @@ bool constraintcontactpoint::GetAutoSelect()
 	return isAutoSelect;
 }
 
+
+// Scene Select Interface
 void constraintcontactpoint::SetSceneSelect( bool pBool )
 {
 	isSceneSelect = pBool;
@@ -604,6 +497,8 @@ bool constraintcontactpoint::GetSceneSelect()
 	return isSceneSelect;
 }
 
+
+// Persistent Selection Interface
 void constraintcontactpoint::SetPersistentSelect( bool pBool )
 {
 	isPersistentSelect = pBool;
@@ -614,6 +509,18 @@ bool constraintcontactpoint::GetPersistentSelect()
 }
 
 
+// Markers' Display Interface
+void constraintcontactpoint::SetDisplayMarkerType( int pType )
+{
+	mDisplayMarkerType = pType;
+}
+int constraintcontactpoint::GetDisplayMarkerType()
+{
+	return mDisplayMarkerType;
+}
+
+
+// Keyframe Navigation Option Interface
 void constraintcontactpoint::SetFindAllKeyframes( bool pBool )
 {
 	isFindAllKeyframes = pBool;
@@ -624,6 +531,7 @@ bool constraintcontactpoint::GetFindAllKeyframes()
 }
 
 
+// Persistent Selection Information Interface
 void constraintcontactpoint::SetListSelIndex( int pIndex )
 {
 	mListSelIndex = pIndex;
@@ -633,18 +541,156 @@ int constraintcontactpoint::GetListSelIndex()
 	return mListSelIndex;
 }
 
-void constraintcontactpoint::SetDisplayMarkerType( int pType )
+
+// Setup Status Interface
+bool constraintcontactpoint::GetSetUp ()
 {
-	mDisplayMarkerType = pType;
-}
-int constraintcontactpoint::GetDisplayMarkerType()
-{
-	return mDisplayMarkerType;
+	return isSetUp;
 }
 
+
+// Reset weight properties focus
+void constraintcontactpoint::DefocusAll()
+{
+	// Iterate and defocus
+	for( int i=0; i<mMarkCount && mMarkCount == mMarkerList.GetCount(); i++)
+	{
+		FBModel* lMarker = mMarkerList.GetAt(i);
+		if ( lMarker->PropertyList.Find("Weight") )
+		{
+			( (FBPropertyAnimatable*)lMarker->PropertyList.Find("Weight") )->SetFocus(false);
+		}
+	}
+}
+
+
+// Deselect All Components
+void constraintcontactpoint::DeselectAll()
+{
+	// Iterate over Scene Components
+	FBPropertyListComponent lList = FBSystem().Scene->Components;
+	int lCnt = lList.GetCount();
+	for( int i=0; i<lCnt; i++ )
+	{
+		FBComponent* lComp = lList.GetAt(i);
+		if ( lComp->Selected )
+			lComp->Selected = false;
+	}
+}
+
+
+// Keyframe Navigation - Find Node with Currently Highest Weight Property
+int constraintcontactpoint::FindWeight()
+{
+	int maxWeight = 0;
+	int maxIndex = -1;
+	// Iterate over markers
+	for( int i=0; i<mMarkCount; i++ )
+	{
+		// Get value via Read Property
+		FBModel* lMarker = mMarkerList.GetAt(i);
+		if ( lMarker->PropertyList.Find("Weight") )
+		{
+			int lWeight;
+			lMarker->PropertyList.Find("Weight")->GetData(&lWeight, sizeof(lWeight));
+			if ( lWeight > maxWeight )
+			{
+				maxWeight = lWeight;
+				maxIndex = i;
+			}
+		}
+	}
+	return maxIndex;
+}
+
+
+// Keyframe Navigation - Find Node with Nearest Next Weight Keyframe
+int constraintcontactpoint::FindNextKey()
+{
+	bool includeZero = isFindAllKeyframes;
+	FBTime localTime = FBSystem().LocalTime;
+	FBTime minDelta = FBTime().OneHour;
+	int minIndex = -1;
+	// Iterate over markers
+	for( int i=0; i<mMarkCount; i++ )
+	{
+		// Get value via FCurve
+		FBAnimationNode* lNode = mMarkerWeights[i];
+		FBFCurve* lFCurve = lNode->FCurve;
+		// Iterate over Keys
+		int lCount = lFCurve->Keys.GetCount();
+		for( int j=0; j<lCount; j++ )
+		{
+			FBFCurveKey lKey = lFCurve->Keys[j];
+			// If Key is set after current time
+			if ( (FBTime)lKey.Time > localTime )
+			{
+				// If value is not zero or value is zero but tool set to Include Zero
+				if ( lKey.Value != 0 || includeZero )
+				{
+					// Read time difference
+					FBTime lDelta = (FBTime)lKey.Time - localTime;
+					if ( lDelta < minDelta )
+					{
+						minDelta = lDelta;
+						minIndex = i; // i = Marker Index ( j = Key Index; not to be confused!)
+						// Leave loop as next keys can not be nearer (only further away in time)
+						break;
+					}
+				}
+			}
+		}
+	}
+	return minIndex;
+}
+
+
+// Keyframe Navigation - Find Node with Nearest Next Weight Keyframe
+int constraintcontactpoint::FindPrevKey()
+{
+	bool includeZero = isFindAllKeyframes;
+	FBTime localTime = FBSystem().LocalTime;
+	FBTime minDelta = FBTime().OneHour;
+	int minIndex = -1;
+	// Iterate over markers
+	for( int i=0; i<mMarkCount; i++ )
+	{
+		// Get value via FCurve
+		FBAnimationNode* lNode = mMarkerWeights[i];
+		FBFCurve* lFCurve = lNode->FCurve;
+		// Iterate over Keys - Reversed order (last to first)
+		int lCount = lFCurve->Keys.GetCount();
+		for( int j=lCount-1; j>=0; j-- )
+		{
+			FBFCurveKey lKey = lFCurve->Keys[j];
+			// If Key is set before current time
+			if ( (FBTime)lKey.Time < localTime )
+			{
+				// If value is not zero or value is zero but tool set to Include Zero
+				if ( lKey.Value != 0 || includeZero )
+				{
+					// Read time difference
+					FBTime lDelta = localTime - (FBTime)lKey.Time;
+					if ( lDelta < minDelta )
+					{
+						minDelta = lDelta;
+						minIndex = i; // i = Marker Index ( j = Key Index; not to be confused!)
+						// Leave loop as next keys can not be nearer (only further away in time)
+						break;
+					}
+				}
+			}
+		}
+	}
+	return minIndex;
+}
+
+
+// Set Visibility for All Markers
 void constraintcontactpoint::SetMarkersVisibility( bool pBool )
 {
 	int lCnt = mMarkerList.GetCount();
+	// Iterate over markers
 	for( int i=0; i<lCnt; i++ )
 	{
 		mMarkerList.GetAt( i )->Show = pBool;
@@ -652,39 +698,252 @@ void constraintcontactpoint::SetMarkersVisibility( bool pBool )
 }
 
 
-int	constraintcontactpoint::GetNodeCount()
+// Setup the auxiliary rig (a reference copy of current hierarchy)
+bool constraintcontactpoint::SetUpAuxRig ()
 {
-	return mUINodeList.GetCount();
+	// Deselect everything
+	DeselectAll();
+	// Get the 'Root' node
+	if ( mRootNode )
+	{
+		// Get current time
+		FBPlayerControl mPlayerControl; 
+		FBTime localTime = FBSystem().LocalTime;
+
+		// Store the top of original hierarchy
+		mRootTopNode = GetTopParent( mRootNode );
+
+		// Select branches below it (children)
+		SelectSkeletonHierarchy( mRootNode );
+
+		// Select hierarchy above (parents)
+		SelectParentChain( mRootNode );
+
+		// Duplicate via Save Selection - leave in case of error
+		if ( !FileTempSaveSelect() )
+			return false;
+
+		// Register Setup (UI Refresh requirement)
+		SetSetUp ( true );
+
+		// Import duplicate copy - leave in case of error
+		if ( !FileMergeBack() )
+		{
+			SetSetUp ( false );
+			return false;
+		}
+
+		// Return to current time ("merge" will go to take start)
+		mPlayerControl.Goto(localTime);
+		 
+		// Find copied node
+		mCopyNode = FBFindModelByLabelName( COPY_NAMESPACE_DOT + mRootString );
+		if ( mCopyNode )
+		{
+			// Colorize hierarchy
+			ColorSkeletonBranch( (FBModelSkeleton*)mCopyNode );
+			// Store the top of copied hierarchy
+			mCopyTopNode = GetTopParent( mCopyNode );
+		}
+		
+		// Activate constraint
+		this->Active = true;
+
+		return true;
+	}
+	// In case something went wrong
+	SetSetUp ( false );
+	return false;
 }
 
-const char*	constraintcontactpoint::GetNodeName( int pIndex )
+
+// Delete marker and its node references at index
+void constraintcontactpoint::DeleteNodeAt( int pIndex )
 {
-	return mUINodeList[pIndex]->LongName;
+	// Reset focus and selection
+	DefocusAll();
+	DeselectAll();
+
+	// Get the marker
+	FBModel* lMarker = mMarkerList.GetAt( pIndex );
+	
+	// Remove reference on source list
+	mSourceList.RemoveAt( pIndex );
+	// Remove reference on marker list
+	mMarkerList.RemoveAt( pIndex );
+	// Remove reference on nodes list
+	mUINodeList.RemoveAt( pIndex );
+	// Remove references on Animation Nodes
+	RemoveArrayItemAt( mSourceNodes, pIndex, mMarkCount );
+	RemoveArrayItemAt( mSourceMarkers, pIndex, mMarkCount );
+	RemoveArrayItemAt( mMarkerWeights, pIndex, mMarkCount );
+	
+	// Count it off
+	mMarkCount--;
+
+	// Clear UI selection
+	mListSelIndex = -1;
+	
+	// Delete the marker from scene
+	if ( lMarker )
+		lMarker->FBDelete();	
 }
 
-void constraintcontactpoint::ShowMarker( int pIndex )
-{
-	mMarkerList.GetAt( pIndex )->Show = true;
-}
 
-FBModel* constraintcontactpoint::GetMarkerAt( int pIndex )
+// Reset Constraint
+void constraintcontactpoint::ResetTool()
 {
-	return mMarkerList.GetAt( pIndex );
-}
+	// Reset focus and selection
+	DefocusAll();
+	DeselectAll();
 
+	// Stop constraint
+	isMarkerConstrained = false;
+
+	// Register that no longer it is set up
+	SetSetUp(false);
+	
+	// Clear UI selection
+	mListSelIndex = -1;
+
+	// Zero out count
+	mMarkCount = 0;
+	// Animation nodes - forget its header
+	mSourceMarkers[0] = NULL;
+	mSourceNodes[0] = NULL;
+	mMarkerWeights[0] = NULL;
+	
+	// Iterate through Markers and delete them
+	int lCnt = mMarkerList.GetCount();
+	for( int i=0; i<lCnt; i++ )
+		mMarkerList.GetAt( i )->FBDelete();
+	
+	// Delete copied Reference Rig
+	DeleteHierarchy( mCopyTopNode );
+	mCopyTopNode = NULL;
+	
+	// Clear Lists
+	mMarkerList.Clear();
+	mSourceList.Clear();
+	mUINodeList.Clear();
+
+	// Clear Root Node information
+	mRootTopNode = NULL;
+	mRootString = FBString();
+	mRootNameSpace = FBString();
+}
 
 
 //   #########################
 //   #########################
-//		Buttons
+//		 Private Functions
 //   #########################
 //   #########################
 
 
+// Save selection to a temporary file
+bool constraintcontactpoint::FileTempSaveSelect()
+{
+	// Save options
+	FBFbxOptions lOptions = FBFbxOptions(false);
+	lOptions.SaveSelectedModelsOnly = true;
+    lOptions.BaseCameras = false;
+    lOptions.CameraSwitcherSettings = false;
+    lOptions.CurrentCameraSettings = false;
+    lOptions.GlobalLightingSettings = false;
+    lOptions.TransportSettings = false;
 
+	// Temporary path (using the system TempPath - usually AppData)
+	mTempSaveString = FBString(mSystem.TempPath) + "SaveSelected.fbx";
+	
+	// Save selected models into a temp file
+	bool lResult = mApplication.FileSave( mTempSaveString, &lOptions );
+
+	// Warn in case of error
+	if( !lResult )
+		FBMessageBox("Error", "Could not duplicate structure.\nExport error.", "OK", NULL, NULL, 1 );
+
+	return lResult;
+}
+
+
+// Merge temporary file back into the scene
+bool constraintcontactpoint::FileMergeBack()
+{
+	// Import options
+	FBFbxOptions lOptions = FBFbxOptions(false);
+	lOptions.NamespaceList = COPY_NAMESPACE;
+
+	// merge from temp file
+	bool lResult = mApplication.FileMerge ( mTempSaveString, false, &lOptions);
+
+	// Warn in case of error
+	if( !lResult )
+		FBMessageBox("Error", "Could not duplicate structure.\nImport error.", "OK", NULL, NULL, 1 );
+
+	return lResult;
+}
+
+
+// Get the top parent of a model
+FBModel* constraintcontactpoint::GetTopParent( FBModel* pModel )
+{
+	if ( pModel )
+	{
+		// Recursion
+		if ( pModel->Parent )
+			return GetTopParent( pModel->Parent );
+		else
+			return pModel;
+	}
+	// Case none, return none
+	return NULL;
+}
+
+
+// Get the top namespace of a model
+FBNamespace* constraintcontactpoint::GetParentNamespace( FBNamespace* pName )
+{
+	if ( pName )
+	{
+		// Recursion
+		if ( pName->GetOwnerNamespace() )
+			return GetParentNamespace( pName->GetOwnerNamespace() );
+		else
+			return pName;
+	}
+	// Case none, return none
+	return NULL;
+}
+
+
+// Get the constraint source root model
+FBModel* constraintcontactpoint::FindRootSrc()
+{
+	// Use the root of copied hierarchy as source
+	return mCopyNode;
+}
+
+
+// Get the constraint destination root model
+FBModel* constraintcontactpoint::FindRootDst()
+{
+	// Use the root of source hierarchy as destination
+	return mRootNode;
+}
+
+
+// Register set up status
+void constraintcontactpoint::SetSetUp ( bool pActivate )
+{
+	isSetUp = pActivate;
+}
+
+
+// Register the model added to list (from UI)
 bool constraintcontactpoint::RegisterNode( FBModel* pLocalModel, FBModel* pTargetModel )
 {
-	// Create a marker - configure if created
+	// Create a marker - and configure if successfully created
 	if ( NewLinkedMarker( pTargetModel ) )
 	{
 		// Append to list
@@ -693,29 +952,29 @@ bool constraintcontactpoint::RegisterNode( FBModel* pLocalModel, FBModel* pTarge
 		// Set up animation node
 		SetupAnimationNode();
 
-		// Set key if set to do so
+		// Status check - If set to 'Auto Key', set key
 		if ( isAutoKey )
-		{
 			AutoKey();
-		}
-		// Check if new marker will be displayed or not
+		
+		// Status check - If set to 'Display All', display marker
 		if ( mDisplayMarkerType == DISPLAYALL )
 		{
 			mMarkerList[mMarkCount-1]->Show = true;
 		}
-		// Check whether to select (in list) or nor
+		
+		// Status check - If set to 'Auto Select', select it (in UI list)
 		if ( isAutoSelect )
 		{
-			// Select last added
+			// Register selection index
 			SetListSelIndex( mMarkCount - 1 );
-			// Check whether to select (in scene)
+			// Status check - If set to 'Scene Select', select it (in scene)
 			if ( isSceneSelect )
 			{
-				// Deselect other, select current
+				// Deselect others, select current
 				DeselectAll();
 				mMarkerList[mMarkCount-1]->Selected = true;
 			}
-			// Check whether to display
+			// Status check - If set to 'Display Selected', display only current marker
 			if ( mDisplayMarkerType == DISPLAYSEL )
 			{
 				// Hide others, show current
@@ -731,320 +990,93 @@ bool constraintcontactpoint::RegisterNode( FBModel* pLocalModel, FBModel* pTarge
 	}
 }
 
-void constraintcontactpoint::SetupAnimationNode()
+
+// Create and configure a new marker linked to a reference model (auxiliary to RegisterNode)
+FBModel* constraintcontactpoint::NewLinkedMarker( FBModel* pParentModel )
 {
-	// Here we set up the animation nodes (which will be constantly evaluated real-time)
+	// Marker count limit
+	if ( mMarkCount == 100 )
+	{
+		// Do not allow more
+		return NULL;
+	}
+
+	// Name it - padded counter
+	char paddednumc[10];
+	sprintf( paddednumc, "%02d", mMarkCount ); 
+	FBString pName = FBString("Mark") + FBString(paddednumc) + FBString("_") + pParentModel->Name ;
+
+	// TODO - allow more than '99' in case user deletes marker and adds new ones
+
+	// Create the marker
+	FBModel* lMarker = CreateMarker( pName );
 	
-	// On the first run, add nodes for source and destination root models
-	if (mMarkCount==1)
-	{
-		// Source root node
-		FBModel* srcModel = FindRootSrc();
-		if ( srcModel )
-			mSourceHip = AnimationNodeOutCreate( 0, srcModel, ANIMATIONNODE_TYPE_TRANSLATION );
-		else
-			FBMessageBox("Tool error", "Reference root was not found", "OK", NULL, NULL, 1 );
-		// Destination root node
-		FBModel* dstModel = FindRootDst();
-		if ( dstModel )
-			mDestinHip = AnimationNodeInCreate ( 1, dstModel, ANIMATIONNODE_TYPE_TRANSLATION );
-		else
-			FBMessageBox("Tool error", "Target root was not found", "OK", NULL, NULL, 1 );
-		// Activate tool (internal bool)
-		isMarkerConstrained = true;
-	}
-	// Safety check - if there are markers and count is consistent
-	if ( mMarkCount > 0 && mMarkCount == mMarkerList.GetCount() )
-	{
-		// Source node (from reference hierarchy)
-		FBModel* srcNode = mSourceList.GetAt( mMarkCount-1 );
-		if ( srcNode )
-		{
-			mSourceNodes[mMarkCount-1]	= AnimationNodeOutCreate( 2, srcNode, ANIMATIONNODE_TYPE_TRANSLATION );
-		}
-		else
-			FBMessageBox("Tool error", "Reference node was not found", "OK", NULL, NULL, 1 );
-		// Marker node - for position...
-		FBModel* srcMark = mMarkerList.GetAt( mMarkCount-1 );
-		if ( srcMark )
-		{
-			mSourceMarkers[mMarkCount-1] = AnimationNodeOutCreate ( 3, srcMark, ANIMATIONNODE_TYPE_TRANSLATION );
-			// ...plus its weight
-			mMarkerWeights[mMarkCount-1] = AnimationNodeOutCreate ( 4, srcMark, ANIMATIONNODE_TYPE_INTEGER );
-		}
-		else
-			FBMessageBox("Tool error", "Reference marker was not found", "OK", NULL, NULL, 1 );
-	}
+	// If it is the first one, create a parent node
+	if ( mMarkCount == 1 )
+		mMarkerParent = new FBModelNull("MarkersGrp");
+
+	// Make the new marker a child of it
+	lMarker->Parent = mMarkerParent;
+
+	// Snap marker to model
+	SnapModel( lMarker, pParentModel );
+
+	// Add "Weight" Property
+	FBPropertyAnimatable* lProp = (FBPropertyAnimatable*)lMarker->PropertyCreate("Weight", kFBPT_int, "Integer", true, true, NULL);
+
+	// Set Minimum, Max and Clamp (alt. SetMinMax)
+	lProp->SetMin(0, true);
+	lProp->SetMax(100, true);
+	// SetAnimated - exposing its property node
+	lProp->SetAnimated(true);
+
+	// Add to list
+	mMarkerList.Add(lMarker);
+
+	return lMarker;
 }
 
-void constraintcontactpoint::ReSetupAnimationNode()
+
+// Create a new marker (auxiliary to NewLinkedMarker)
+FBModel* constraintcontactpoint::CreateMarker(char* pName )
 {
-	//set nodes
-	//hip source node
-	FBModel* srcModel = FindRootSrc();
-	if ( srcModel )
-		mSourceHip = AnimationNodeOutCreate( 0, srcModel, ANIMATIONNODE_TYPE_TRANSLATION );
-	else
-		FBMessageBox("Tool error", "Reference root was not found", "OK", NULL, NULL, 1 );
-	// destination node
-	FBModel* dstModel = FindRootDst();
-	if ( dstModel )
-		mDestinHip = AnimationNodeInCreate ( 1, dstModel, ANIMATIONNODE_TYPE_TRANSLATION );
-	else
-		FBMessageBox("Tool error", "Target root was not found", "OK", NULL, NULL, 1 );
+	// New Marker
+	FBModel* lMarker = new FBModelMarker( pName );
 
-	//also, tell the tool now it can run - activate tool
-	isMarkerConstrained = true;
-
-	//debug
-	for( int i=0; i<mMarkCount; i++ )
-	{
-		// source local no esqueleto
-		FBModel* srcNode = mSourceList.GetAt(i);
-		if ( srcNode )
-		{
-			mSourceNodes[i]	= AnimationNodeOutCreate( 2, srcNode, ANIMATIONNODE_TYPE_TRANSLATION );
-		}
-		else
-			FBMessageBox("Tool error", "Reference node was not found", "OK", NULL, NULL, 1 );
-		// source do marcador
-		FBModel* srcMark = mMarkerList.GetAt( i );
-		if ( srcMark )
-		{
-			mSourceMarkers[i] = AnimationNodeOutCreate ( 3, srcMark, ANIMATIONNODE_TYPE_TRANSLATION );
-			mMarkerWeights[i] = AnimationNodeOutCreate ( 4, srcMark, ANIMATIONNODE_TYPE_INTEGER );
-		}
-		else
-			FBMessageBox("Tool error", "Reference marker was not found", "OK", NULL, NULL, 1 );
-	}
-}
-
+	// Adjust its size
+	double lSize = 300;
+	FBProperty* lPproperty = lMarker->PropertyList.Find("Size");
+	lPproperty->SetData(&lSize);
 	
-void constraintcontactpoint::SetSetUp ( bool pActivate )
-{
-	isSetUp = pActivate;
-}
-bool constraintcontactpoint::GetSetUp ()
-{
-	return isSetUp;
-}
-
-bool constraintcontactpoint::SetUpAuxRig ()
-{
-	//Setup auxiliary rig
-	// See if exists
-	//TODO
-	DeselectAll();
-	// Get 'root'
-	if ( mRootNode )
-	{
-		// store the top of original hierarchy
-		mRootTopNode = GetTopParent( mRootNode );
-
-		//Select branches
-		SelectSkeletonHierarchy( mRootNode );
-
-		//Select hierarchy above
-		SelectParentChain( mRootNode );
-
-		// get local time
-		FBPlayerControl				mPlayerControl; 
-		FBTime localTime = FBSystem().LocalTime;
-
-
-		//Duplicate via save selection 
-		if ( !FileTempSaveSelect() )
-			return false;
-
-		//register setup - so ui can properly refresh
-		SetSetUp ( true );
-
-		//Import duplicate copy
-		if ( !FileMergeBack() )
-		{
-			SetSetUp ( false );
-			return false;
-		}
-
-		// go back to time it was
-		mPlayerControl.Goto(localTime);
-		 
-		// colorize
-		mCopyNode = FBFindModelByLabelName( COPY_NAMESPACE_DOT + mRootString );
-		if ( mCopyNode )
-		{
-			ColorSkeletonBranch( (FBModelSkeleton*)mCopyNode );
-			// store the top of hierarchy of the copy
-			mCopyTopNode = GetTopParent( mCopyNode );
-		}
-		
-		// activate constraint
-		this->Active = true;
-
-		return true;
-	}
-	// case things went bad
-	SetSetUp ( false );
-	return false;
-}
-
-
-void constraintcontactpoint::DeselectAll()
-{
-	// iterate over components
-	FBPropertyListComponent lList = FBSystem().Scene->Components;
-	int lCnt = lList.GetCount();
-	for( int i=0; i<lCnt; i++ )
-	{
-		FBComponent* lComp = lList.GetAt(i);
-		if ( lComp->Selected )
-			lComp->Selected = false;
-	}
-}
+	// Adjust its look (light cross - 2)
+	int lLook = kFBMarkerLookLightCross;
+	lPproperty = lMarker->PropertyList.Find("Look");
+	lPproperty->SetData(&lLook);
 	
-void constraintcontactpoint::SelectSkeletonHierarchy( FBModel* topNode )
-{
-	// Recursive function !
-	// if there is no model, terminate
-	if ( topNode == NULL )
-		return;
-	
-	// number of children
-	int lCnt = topNode->Children.GetCount();
-	for( int i=0; i<lCnt; i++ )
-	{
-		// if is skeleton
-		if ( topNode->Children.GetAt(i)->Is( FBModelSkeleton::TypeInfo ) )
-			SelectSkeletonHierarchy( (FBModel*)topNode->Children.GetAt(i) );
-	}
-	topNode->Selected = true;
-}
+	// Increment the count
+	mMarkCount += 1;
 
-void constraintcontactpoint::SelectParentChain( FBModel* pModel )
-{
-	// Recursive function !
-	// if there is no model, terminate
-	if ( pModel == NULL )
-		return;
-
-	// if parent exists...
-	if ( pModel->Parent )
-	{
-		SelectParentChain( pModel->Parent );
-		pModel->Parent->Selected = true;
-	}
+	return lMarker;
 }
 
 
-
-void constraintcontactpoint::DeleteHierarchy( FBModel* topNode )
+// Snaps one model to the position of the other (auxiliary to NewLinkedMarker)
+void constraintcontactpoint::SnapModel( FBModel* pDst, FBModel* pSrc )
 {
-	// Recursive function !
-	// if there is no model, terminate
-	if ( topNode == NULL )
-		return;
-	
-	// delete every children back to front
-	// number of children
-	int lCnt = topNode->Children.GetCount() - 1;
-	for( int i=0; i<=lCnt; i++ )
-	{
-		DeleteHierarchy( (FBModel*)topNode->Children.GetAt( lCnt-i ) );
-	}
-	topNode->FBDelete();
-}
-bool constraintcontactpoint::FileTempSaveSelect()
-{
-	//setting options
-	FBFbxOptions lOptions = FBFbxOptions(false);
-	
-	lOptions.SaveSelectedModelsOnly = true;
-	// disregard system stuff
-    lOptions.BaseCameras = false;
-    lOptions.CameraSwitcherSettings = false;
-    lOptions.CurrentCameraSettings = false;
-    lOptions.GlobalLightingSettings = false;
-    lOptions.TransportSettings = false;
-
-
-	mTempSaveString = FBString(mSystem.TempPath) + "SaveSelected.fbx";
-	// Save selected models into a temp file
-	bool lResult = mApplication.FileSave( mTempSaveString, &lOptions );
-
-	if( !lResult )
-		FBMessageBox("Error", "Could not duplicate structure.\nExport error.", "OK", NULL, NULL, 1 );
-
-	return lResult;
+	FBVector3d l3dGlobalTrans;
+	// 'True' flag for global
+	pSrc->GetVector(l3dGlobalTrans, kModelTranslation, true ); 
+    pDst->Translation = l3dGlobalTrans;
 }
 
-bool constraintcontactpoint::FileMergeBack()
-{
-	//setting options
-	FBFbxOptions lOptions = FBFbxOptions(false);
-	// + namespace
-	lOptions.NamespaceList = COPY_NAMESPACE;
 
-	bool lResult = mApplication.FileMerge ( mTempSaveString, false, &lOptions);
-
-	if( !lResult )
-		FBMessageBox("Error", "Could not duplicate structure.\nImport error.", "OK", NULL, NULL, 1 );
-
-	return lResult;
-}
-	
-void constraintcontactpoint::ColorSkeletonBranch( FBModelSkeleton* topNode )
-{
-	// Recursive function !
-	// if there is no model, terminate
-	if ( topNode == NULL )
-		return;
-	
-	// number of children
-	int lCnt = topNode->Children.GetCount();
-	for( int i=0; i<lCnt; i++ )
-	{
-		// if is skeleton
-		if ( topNode->Children.GetAt(i)->Is( FBModelSkeleton::TypeInfo ) )
-			ColorSkeletonBranch( (FBModelSkeleton*)topNode->Children.GetAt(i) );
-	}
-	topNode->Color = FBColor(0,0.666,1);
-}
-
-FBModel* constraintcontactpoint::GetTopParent( FBModel* pModel )
-{
-	if ( pModel )
-	{
-		if ( pModel->Parent )
-			return GetTopParent( pModel->Parent );
-		else
-			return pModel;
-	}
-	// case none, return none
-	return NULL;
-}
-
-FBNamespace* constraintcontactpoint::GetParentNamespace( FBNamespace* pName )
-{
-	if ( pName )
-	{
-		if ( pName->GetOwnerNamespace() )
-			return GetParentNamespace( pName->GetOwnerNamespace() );
-		else
-			return pName;
-	}
-	// case none, return none
-	return NULL;
-}
-
-/************************************************
- *	Create and set up keys for created marker at the moment ( auxiliary to RegisterNode )
- ************************************************/
+// Create and set up keys for created marker at the moment (auxiliary to RegisterNode)
 void constraintcontactpoint::AutoKey()
 {
-	// Getting the weight node..
+	// Getting the weight node...
 	if ( mMarkCount > 0 )
 	{
-		// ..via created node
+		// ...via created node
 		FBAnimationNode* customNode = mMarkerWeights[mMarkCount-1];
 		if ( customNode )
 		{
@@ -1070,16 +1102,13 @@ void constraintcontactpoint::AutoKey()
 			if ( mMarkCount > 1 )
 			{
 				AutoKeyOthers( lCurre, lInterp, lTangen, 0.0 );
-				// nah
-				// customNode = mMarkerWeights[mMarkCount-2];
 			}
 		}
 	}
 }
 
-/************************************************
- *	Create zero-weight keys on any non-zero weighted marker at the moment ( auxiliary to AutoKey )
- ************************************************/
+
+// Create zero-weight keys on any non-zero weighted marker at the moment (auxiliary to AutoKey)
 void constraintcontactpoint::AutoKeyOthers( FBTime pTime, FBInterpolation pInterp, FBTangentMode pTangen, double pWeight )
 {
 	// Find nodes with non-zero weight
@@ -1091,7 +1120,7 @@ void constraintcontactpoint::AutoKeyOthers( FBTime pTime, FBInterpolation pInter
 		{
 			int lWeight;
 			lMarker->PropertyList.Find("Weight")->GetData(&lWeight, sizeof(lWeight));
-			// Set key if weight is non-zero
+			// Check if weight is non-zero
 			if ( lWeight > 0 )
 			{
 				// Grab animation node, set key
@@ -1106,39 +1135,7 @@ void constraintcontactpoint::AutoKeyOthers( FBTime pTime, FBInterpolation pInter
 }
 
 
-
-void constraintcontactpoint::SelectMarker( int pIndex )
-{
-	if ( mMarkerList[pIndex] )
-	{
-		DeselectAll();
-		mMarkerList[pIndex]->Selected = true;
-	}
-}
-
-void constraintcontactpoint::FocusMarker( int pIndex )
-{
-	if ( mMarkerList[pIndex] )
-	{
-		DefocusAll();
-		Focus( mMarkerList[pIndex] );
-	}
-}
-
-void constraintcontactpoint::DefocusAll()
-{
-	// iterate and defocus
-	for(int i=0;i<mMarkCount && mMarkCount == mMarkerList.GetCount();i++)
-	{
-		FBModel* lMarker = mMarkerList.GetAt(i);
-		if ( lMarker->PropertyList.Find("Weight") )
-		{
-
-			( (FBPropertyAnimatable*)lMarker->PropertyList.Find("Weight") )->SetFocus(false);
-		}
-	}
-}
-
+// Focus markers's weight property
 void constraintcontactpoint::Focus( FBModel* pMarker )
 {
 	if ( pMarker->PropertyList.Find("Weight") )
@@ -1147,199 +1144,182 @@ void constraintcontactpoint::Focus( FBModel* pMarker )
 	}
 }
 
-int constraintcontactpoint::FindWeight()
-{
-	int maxWeight = 0;
-	int maxIndex = -1;
-	for( int i=0; i<mMarkCount; i++ )
-	{
-		/* via read property */
-		FBModel* lMarker = mMarkerList.GetAt(i);
-		if ( lMarker->PropertyList.Find("Weight") )
-		{
-			int lWeight;
-			lMarker->PropertyList.Find("Weight")->GetData(&lWeight, sizeof(lWeight));
-			if ( lWeight > maxWeight )
-			{
-				maxWeight = lWeight;
-				maxIndex = i;
-			}
-		}
-	}
 
-	return maxIndex;
+// Set up animation nodes for real-time evaluation (progressively added)
+void constraintcontactpoint::SetupAnimationNode()
+{
+	// On the first run, add nodes for source and destination root models
+	if (mMarkCount==1)
+	{
+		// Source root node
+		FBModel* srcModel = FindRootSrc();
+		if ( srcModel )
+			mSourceHip = AnimationNodeOutCreate( 0, srcModel, ANIMATIONNODE_TYPE_TRANSLATION );
+		else
+			FBMessageBox("Tool error", "Reference root was not found", "OK", NULL, NULL, 1 );
+		// Destination root node
+		FBModel* dstModel = FindRootDst();
+		if ( dstModel )
+			mDestinHip = AnimationNodeInCreate ( 1, dstModel, ANIMATIONNODE_TYPE_TRANSLATION );
+		else
+			FBMessageBox("Tool error", "Target root was not found", "OK", NULL, NULL, 1 );
+		// Activate tool (internal bool)
+		isMarkerConstrained = true;
+	}
+	// Safety check - if there are markers and count is consistent
+	if ( mMarkCount > 0 && mMarkCount == mMarkerList.GetCount() )
+	{
+		// Source model node
+		FBModel* srcNode = mSourceList.GetAt( mMarkCount-1 );
+		if ( srcNode )
+		{
+			mSourceNodes[mMarkCount-1]	= AnimationNodeOutCreate( 2, srcNode, ANIMATIONNODE_TYPE_TRANSLATION );
+		}
+		else
+			FBMessageBox("Tool error", "Reference node was not found", "OK", NULL, NULL, 1 );
+		// Marker node
+		FBModel* srcMark = mMarkerList.GetAt( mMarkCount-1 );
+		if ( srcMark )
+		{
+			//  Its position...
+			mSourceMarkers[mMarkCount-1] = AnimationNodeOutCreate ( 3, srcMark, ANIMATIONNODE_TYPE_TRANSLATION );
+			// ...plus its weight property value
+			mMarkerWeights[mMarkCount-1] = AnimationNodeOutCreate ( 4, srcMark, ANIMATIONNODE_TYPE_INTEGER );
+		}
+		else
+			FBMessageBox("Tool error", "Reference marker was not found", "OK", NULL, NULL, 1 );
+	}
 }
 
 
-int constraintcontactpoint::FindNextKey()
+// Set up animation nodes for real-time evaluation (one-shot creation for recreation from file open)
+void constraintcontactpoint::ReSetupAnimationNode()
 {
-	bool includeZero = isFindAllKeyframes;
-	FBTime localTime = FBSystem().LocalTime;
-	FBTime minDelta = FBTime().OneHour;
-	int minIndex = -1;
+	// Source root node
+	FBModel* srcModel = FindRootSrc();
+	if ( srcModel )
+		mSourceHip = AnimationNodeOutCreate( 0, srcModel, ANIMATIONNODE_TYPE_TRANSLATION );
+	else
+		FBMessageBox("Tool error", "Reference root was not found", "OK", NULL, NULL, 1 );
+	// Destination root node
+	FBModel* dstModel = FindRootDst();
+	if ( dstModel )
+		mDestinHip = AnimationNodeInCreate ( 1, dstModel, ANIMATIONNODE_TYPE_TRANSLATION );
+	else
+		FBMessageBox("Tool error", "Target root was not found", "OK", NULL, NULL, 1 );
 
+	// Activate tool (internal bool)
+	isMarkerConstrained = true;
 
-
-	// iterate over markers
+	// Iterate through markers
 	for( int i=0; i<mMarkCount; i++ )
 	{
-		//via fcurve
-		FBAnimationNode* lNode = mMarkerWeights[i];
-		FBFCurve* lFCurve = lNode->FCurve;
-		//iterate over keys
-		int lCount = lFCurve->Keys.GetCount();
-		for( int j=0; j<lCount; j++ )
+		// Source model node
+		FBModel* srcNode = mSourceList.GetAt(i);
+		if ( srcNode )
 		{
-			FBFCurveKey lKey = lFCurve->Keys[j];
-			// index = j
-			// if comes later
-			if ( (FBTime)lKey.Time > localTime )
-			{
-				// se value =/= zero ou value == 0 && include zero
-				if ( lKey.Value != 0 || includeZero )
-				{
-					FBTime lDelta = (FBTime)lKey.Time - localTime;
-					if ( lDelta < minDelta )
-					{
-						minDelta = lDelta;
-						minIndex = i; // index do marker
-						// j daria o index do key
-						// sai do loop pq as próximas serão mais distantes
-						break;
-					}
-				}
-			}
+			mSourceNodes[i]	= AnimationNodeOutCreate( 2, srcNode, ANIMATIONNODE_TYPE_TRANSLATION );
 		}
-	}
-	return minIndex;
-}
-
-int constraintcontactpoint::FindPrevKey()
-{
-	bool includeZero = isFindAllKeyframes;
-	FBTime localTime = FBSystem().LocalTime;
-	FBTime minDelta = FBTime().OneHour;
-	int minIndex = -1;
-
-	// iterate over markers
-	for( int i=0; i<mMarkCount; i++ )
-	{
-		//via fcurve
-		FBAnimationNode* lNode = mMarkerWeights[i];
-		FBFCurve* lFCurve = lNode->FCurve;
-		//iterate over keys - reversed order
-		int lCount = lFCurve->Keys.GetCount();
-		for( int j=lCount-1; j>=0; j-- )
+		else
+			FBMessageBox("Tool error", "Reference node was not found", "OK", NULL, NULL, 1 );
+		// Marker node
+		FBModel* srcMark = mMarkerList.GetAt( i );
+		if ( srcMark )
 		{
-			FBFCurveKey lKey = lFCurve->Keys[j];
-			// index = j
-			// if comes sooner
-			if ( (FBTime)lKey.Time < localTime )
-			{
-				// se value =/= zero ou value == 0 && include zero
-				if ( lKey.Value != 0 || includeZero )
-				{
-					FBTime lDelta = localTime - (FBTime)lKey.Time;
-					if ( lDelta < minDelta )
-					{
-						minDelta = lDelta;
-						minIndex = i; // index do marker
-						// j daria o index do key
-						// sai do loop pq as próximas serão mais distantes
-						break;
-					}
-				}
-			}
+			//  Its position...
+			mSourceMarkers[i] = AnimationNodeOutCreate ( 3, srcMark, ANIMATIONNODE_TYPE_TRANSLATION );
+			// ...plus its weight property value
+			mMarkerWeights[i] = AnimationNodeOutCreate ( 4, srcMark, ANIMATIONNODE_TYPE_INTEGER );
 		}
+		else
+			FBMessageBox("Tool error", "Reference marker was not found", "OK", NULL, NULL, 1 );
 	}
-	return minIndex;
 }
 
 
-
+// Delete item from nodes array at Index
 int constraintcontactpoint::RemoveArrayItemAt( FBAnimationNode** pArray, int pIndex, int pLength)
 {
+	// Deleting: overwriting removed value, shifting all items after it to the left
+	// and registering the array to be one item shorter
 	for (int i = pIndex; i < pLength-1; i++)
-		pArray[i] = pArray[i + 1]; // copy next element left
+		pArray[i] = pArray[i + 1]; // Copy next element to the left
 	return pLength - 1;
 }
 
 
-
-void constraintcontactpoint::DeleteNodeAt( int pIndex )
+// Select model and full hierarchy - recursive
+void constraintcontactpoint::SelectSkeletonHierarchy( FBModel* topNode )
 {
-	// defocus
-	DefocusAll();
-	DeselectAll();
-
-	// pega o marker
-	FBModel* lMarker = mMarkerList.GetAt( pIndex );
+	// Safety check - exit if is not skeleton
+	if ( topNode == NULL || !topNode->Is( FBModelSkeleton::TypeInfo ) )
+		return;
 	
-	// tira source
-	mSourceList.RemoveAt( pIndex );
-	// remove marker from list
-	mMarkerList.RemoveAt( pIndex );
-	mUINodeList.RemoveAt( pIndex );
-	// tira os nodes
-	RemoveArrayItemAt( mSourceNodes, pIndex, mMarkCount );
-	RemoveArrayItemAt( mSourceMarkers, pIndex, mMarkCount );
-	RemoveArrayItemAt( mMarkerWeights, pIndex, mMarkCount );
-	
-	//reduz a contagem
-	mMarkCount--;
-
-	// marca seleção nula
-	mListSelIndex = -1;
-	
-	// apaga marker
-	if ( lMarker )
-		lMarker->FBDelete();
-	
-	
-}
-
-
-void constraintcontactpoint::ResetTool()
-{
-	//	defocus and deselect
-	DefocusAll();
-	DeselectAll();
-
-	// stop constraint
-	isMarkerConstrained = false;
-
-	//register that no longer is set up
-	SetSetUp(false);
-	
-	// clear selection information
-	mListSelIndex = -1;
-
-	// animation nodes - keep as is, just forget about them
-	mMarkCount = 0;
-	mSourceMarkers[0] = NULL;
-	mSourceNodes[0] = NULL;
-	mMarkerWeights[0] = NULL;
-	
-	// delete markers
-	int lCnt = mMarkerList.GetCount();
+	// Get number of children
+	int lCnt = topNode->Children.GetCount();
+	// Recursion
 	for( int i=0; i<lCnt; i++ )
-		mMarkerList.GetAt( i )->FBDelete();
-	
-	// delete extra reference rig
-	DeleteHierarchy( mCopyTopNode );
-	mCopyTopNode = NULL;
-	
-	// clear lists
-	mMarkerList.Clear();
-	mSourceList.Clear();
-	mUINodeList.Clear();
-
-	// clear root information
-	mRootTopNode = NULL;
-	mRootString = FBString(); //FBString("");
-	mRootNameSpace = FBString();
+	{
+		SelectSkeletonHierarchy( (FBModel*)topNode->Children.GetAt(i) );
+	}
+	// Select it
+	topNode->Selected = true;
 }
 
+
+// Select all parents of a model - recursive
+void constraintcontactpoint::SelectParentChain( FBModel* pModel )
+{
+	// Safety check
+	if ( pModel == NULL )
+		return;
+
+	// If there is parent
+	if ( pModel->Parent )
+	{
+		SelectParentChain( pModel->Parent );
+		pModel->Parent->Selected = true;
+	}
+}
+
+
+// Colorize full skeleton hierarchy - recursive
+void constraintcontactpoint::ColorSkeletonBranch( FBModelSkeleton* topNode )
+{
+	// Safety check - exit if is not skeleton
+	if ( topNode == NULL || !topNode->Is( FBModelSkeleton::TypeInfo ) )
+		return;
+	
+	// Get number of children
+	int lCnt = topNode->Children.GetCount();
+	// Recursion
+	for( int i=0; i<lCnt; i++ )
+	{
+		ColorSkeletonBranch( (FBModelSkeleton*)topNode->Children.GetAt(i) );
+	}
+	// Colorize it
+	topNode->Color = FBColor(0,0.666,1);
+}
+
+
+// Delete a model and its full hierarchy - recursive
+void constraintcontactpoint::DeleteHierarchy( FBModel* topNode )
+{
+	// Safety check
+	if ( topNode == NULL )
+		return;
+	
+	// Delete every children back to front
+	// Get number of children
+	int lCnt = topNode->Children.GetCount() - 1;
+	// Recursion
+	for( int i=0; i<=lCnt; i++ )
+	{
+		DeleteHierarchy( (FBModel*)topNode->Children.GetAt( lCnt-i ) );
+	}
+	// Delete it
+	topNode->FBDelete();
+}
 
 
 /* -- Development helper function
